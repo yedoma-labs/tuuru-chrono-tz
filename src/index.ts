@@ -31,10 +31,12 @@ export type {
   Weekday
 } from './types.js';
 
-// Re-export timezone data
+// Re-export timezone data (names/links only — the heavy zone/rule tables
+// stay behind the './tzdata' subpath via getTimezoneData)
 export {
   TIMEZONE_NAMES,
   TIMEZONE_COUNT,
+  TIMEZONE_LINKS,
   TZDATA_VERSION
 } from './tzdata/index.js';
 

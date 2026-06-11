@@ -34,7 +34,7 @@
     "build-tzdata": "pnpm download-iana && pnpm parse-iana",
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'}))\"",
     "pretest": "pnpm build",
-    "test": "node --test test/datetime.test.js test/duration.test.js test/timezone.test.js test/locale.test.js test/security.test.js test/cjs.test.js",
+    "test": "node --test test/datetime.test.js test/duration.test.js test/timezone.test.js test/locale.test.js test/calendar.test.js test/exports.test.js test/security.test.js test/cjs.test.js",
     "size": "node scripts/check-size.js",
     "bench": "node scripts/benchmark.js",
     "lint": "eslint src/**/*.ts",
@@ -63,6 +63,26 @@
       "require": {
         "types": "./dist/cjs/index.d.ts",
         "default": "./dist/cjs/index.js"
+      }
+    },
+    "./tzdata": {
+      "import": {
+        "types": "./dist/esm/tzdata/index.d.ts",
+        "default": "./dist/esm/tzdata/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/tzdata/index.d.ts",
+        "default": "./dist/cjs/tzdata/index.js"
+      }
+    },
+    "./locales/*": {
+      "import": {
+        "types": "./dist/esm/locales/*.d.ts",
+        "default": "./dist/esm/locales/*.js"
+      },
+      "require": {
+        "types": "./dist/cjs/locales/*.d.ts",
+        "default": "./dist/cjs/locales/*.js"
       }
     }
   }

@@ -160,6 +160,35 @@ export class DateTime {
   }
 
   /**
+   * Earliest of the given DateTimes (by instant)
+   *
+   * @throws {Error} If called with no arguments
+   *
+   * @example
+   * ```typescript
+   * DateTime.min(a, b, c);
+   * ```
+   */
+  static min(...dates: DateTime[]): DateTime {
+    if (dates.length === 0) {
+      throw new Error('DateTime.min requires at least one argument');
+    }
+    return dates.reduce((earliest, d) => d.#timestamp < earliest.#timestamp ? d : earliest);
+  }
+
+  /**
+   * Latest of the given DateTimes (by instant)
+   *
+   * @throws {Error} If called with no arguments
+   */
+  static max(...dates: DateTime[]): DateTime {
+    if (dates.length === 0) {
+      throw new Error('DateTime.max requires at least one argument');
+    }
+    return dates.reduce((latest, d) => d.#timestamp > latest.#timestamp ? d : latest);
+  }
+
+  /**
    * Parse ISO 8601 string (strict)
    *
    * Accepts extended-format ISO 8601 only. Rejects impossible dates
@@ -440,6 +469,48 @@ export class DateTime {
     return weekdayOf(this.#wallClock);
   }
 
+  /** Calendar quarter (1-4) */
+  get quarter(): number {
+    return Math.floor((this.#wallClock.month - 1) / 3) + 1;
+  }
+
+  /** Day of the year (1-366) */
+  get dayOfYear(): number {
+    const wc = this.#wallClock;
+    const start = Date.UTC(wc.year, 0, 1);
+    const current = Date.UTC(wc.year, wc.month - 1, wc.day);
+    return Math.round((current - start) / 86400000) + 1;
+  }
+
+  /** Number of days in this instance's month (28-31) */
+  get daysInMonth(): number {
+    return daysInMonth(this.#wallClock.year, this.#wallClock.month);
+  }
+
+  /** Whether this instance's year is a leap year */
+  get isLeapYear(): boolean {
+    const y = this.#wallClock.year;
+    return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+  }
+
+  /**
+   * ISO 8601 week number (1-53)
+   *
+   * Weeks start Monday; week 1 is the week containing the year's first
+   * Thursday. Matches `format` semantics and ISO 8601 §8.1.4.
+   */
+  get weekOfYear(): number {
+    const wc = this.#wallClock;
+    // Shift to the Thursday of this week, then count weeks from Jan 1
+    const date = new Date(Date.UTC(wc.year, wc.month - 1, wc.day));
+    const dayNum = (date.getUTCDay() + 6) % 7; // Mon=0..Sun=6
+    date.setUTCDate(date.getUTCDate() - dayNum + 3); // Thursday of this week
+    const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+    const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+    firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+    return Math.round((date.getTime() - firstThursday.getTime()) / (7 * 86400000)) + 1;
+  }
+
   get timezone(): string {
     return this.#timezone;
   }
@@ -659,6 +730,14 @@ export class DateTime {
     return this.#timestamp > other.#timestamp;
   }
 
+  isSameOrBefore(other: DateTime): boolean {
+    return this.#timestamp <= other.#timestamp;
+  }
+
+  isSameOrAfter(other: DateTime): boolean {
+    return this.#timestamp >= other.#timestamp;
+  }
+
   /**
    * Check if two DateTimes are the same instant, or fall within the same
    * unit (evaluated in this DateTime's timezone)
@@ -738,11 +817,16 @@ export class DateTime {
       A: locale.meridiem(wc.hour, false),
       a: locale.meridiem(wc.hour, true),
       ZZ: formatOffset(offset, ''),
-      Z: formatOffset(offset, ':')
+      Z: formatOffset(offset, ':'),
+      Q: String(Math.floor((wc.month - 1) / 3) + 1),
+      DDDD: pad(this.dayOfYear, 3),
+      DDD: String(this.dayOfYear),
+      WW: pad(this.weekOfYear, 2),
+      W: String(this.weekOfYear)
     };
 
     return pattern.replace(
-      /\[([^\]]*)\]|YYYY|YY|MMMM|MMM|MM|M|DD|D|dddd|ddd|HH|H|hh|h|mm|m|ss|s|SSS|A|a|ZZ|Z/g,
+      /\[([^\]]*)\]|YYYY|YY|MMMM|MMM|MM|M|DDDD|DDD|DD|D|dddd|ddd|HH|H|hh|h|mm|m|ss|s|SSS|A|a|ZZ|Z|Q|WW|W/g,
       (match, literal) => literal !== undefined ? literal : (tokens[match] ?? match)
     );
   }

@@ -24,7 +24,7 @@ Built to solve **298 real user pain points** collected from date-fns, moment.js,
 | No global locale | 89 👍 on date-fns | `setDefaultLocale()` + tree-shakeable locale objects |
 | Poor TypeScript | Retrofitted types | TypeScript-first, literal types for timezones |
 | Confusing UTC | 116 👍 | Explicit `toUTC()` / `toLocal()` / offsets in ISO output |
-| Bundle size | date-fns grew to 21MB | Core is **10.7KB gzipped**, enforced in CI |
+| Bundle size | date-fns grew to 21MB | Core is **11KB gzipped**, enforced in CI |
 
 ---
 
@@ -59,8 +59,18 @@ const tomorrow = now.add({ days: 1 });     // keeps local time across DST
 const lastMonth = now.subtract({ months: 1 }); // clamps month-end overflow
 
 // Comparison
-now.isBefore(tomorrow);      // true
-now.isSame(tomorrow, 'month'); // unit-based, timezone-aware
+now.isBefore(tomorrow);          // true
+now.isSameOrBefore(tomorrow);    // true (inclusive)
+now.isSame(tomorrow, 'month');   // unit-based, timezone-aware
+DateTime.min(now, tomorrow);     // earliest
+DateTime.max(now, tomorrow);     // latest
+
+// Calendar getters (all timezone-aware)
+parsed.quarter;       // 2
+parsed.dayOfYear;     // 161
+parsed.weekOfYear;    // 23  (ISO 8601)
+parsed.daysInMonth;   // 30
+parsed.isLeapYear;    // true
 ```
 
 ### Timezones
@@ -139,31 +149,47 @@ Custom locales are just objects implementing the exported `Locale` interface.
 
 ### Format Tokens
 
-`YYYY` `YY` year · `MMMM` `MMM` `MM` `M` month · `DD` `D` day · `dddd` `ddd` weekday ·
+`YYYY` `YY` year · `Q` quarter · `MMMM` `MMM` `MM` `M` month · `DD` `D` day ·
+`DDDD` `DDD` day-of-year · `WW` `W` ISO week · `dddd` `ddd` weekday ·
 `HH` `H` hour 0-23 · `hh` `h` hour 1-12 · `mm` `m` minute · `ss` `s` second ·
 `SSS` millisecond · `A` `a` AM/PM · `Z` `ZZ` offset · `[text]` escaped literal
+
+### Raw IANA data (advanced)
+
+The full zone/rule tables ship behind a subpath so they never enter your
+bundle unless you ask for them:
+
+```typescript
+import { getTimezoneData } from '@yedoma-labs/tuuru-chrono-tz/tzdata';
+const data = getTimezoneData(); // { version, zones, rules, links, metadata }
+```
 
 ---
 
 ## Status
 
-Core is complete and covered by 143 automated tests (parsing rejection tables, DST
+Core is complete and covered by 207 automated tests (parsing rejection tables, DST
 spring-forward/fall-back arithmetic, timezone-aware bucketing, dual-package smoke test).
 CI runs Node 18/20/22/24 on Linux plus Node 22 on macOS and Windows.
 
 | Component | Status |
 |-----------|--------|
 | DateTime (parse, format, arithmetic, zones) | ✅ |
+| Calendar getters (quarter, dayOfYear, weekOfYear, daysInMonth, isLeapYear) | ✅ |
+| Comparison (isBefore/After, isSameOrBefore/After, isBetween, min/max) | ✅ |
 | Duration (fromISO, humanize, cascading format) | ✅ |
 | Timezone utilities (search, canonical links, DST) | ✅ |
 | Locales (global, per-instance, tree-shakeable) | ✅ en, de, fr |
 | IANA data pipeline (2026b, 568 zones, 256 links) | ✅ |
 | ESM + CJS dual build | ✅ |
-| Bundle size (10.7KB gzipped core, CI-enforced < 20KB) | ✅ |
+| Bundle size (11KB gzipped core, CI-enforced < 20KB + tree-shaking) | ✅ |
 
 **Roadmap to v1.0**: native IANA-rule offset math (current math uses cached
 `Intl.DateTimeFormat` — accurate, but rule-based math will be faster), more
-locales, optional LocalDate/LocalTime types, CDN build.
+locales, optional LocalDate/LocalTime plain-types, CDN build, month-name
+parsing in `fromFormat` (`MMM`/`MMMM` tokens). These are the only items from
+the implementation guide not yet shipped; everything in the guide's "Critical"
+and "High Priority" tiers is done.
 
 ### Performance
 
@@ -252,8 +278,8 @@ scripts/
 ├── download-iana.js  # Fetch tzdata release from iana.org
 ├── parse-iana.js     # Generate src/tzdata/ modules
 ├── check-size.js     # CI bundle-size guard (pnpm size)
-└── benchmark.js      # Performance benchmark (pnpm bench)
-test/                 # node:test suite (190 tests, incl. security.test.js)
+├── benchmark.js      # Performance benchmark (pnpm bench)
+test/                 # node:test suite (207 tests, incl. security + exports)
 ```
 
 ### Updating IANA Timezone Data
