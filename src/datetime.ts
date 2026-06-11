@@ -14,9 +14,9 @@ import type {
   TimeUnit
 } from './types.js';
 import { Duration } from './duration.js';
+import { getDefaultLocale, setDefaultLocale } from './locale.js';
+import type { Locale } from './locale.js';
 import {
-  MONTH_NAMES,
-  WEEKDAY_NAMES,
   getWallClock,
   getOffsetMinutes,
   wallClockToTimestamp,
@@ -83,13 +83,52 @@ export class DateTime {
   // Private fields (immutable)
   readonly #timestamp: number;
   readonly #timezone: string;
+  readonly #locale: Locale | undefined;
 
   /**
    * Private constructor - use factory methods
    */
-  private constructor(timestamp: number, timezone: string) {
+  private constructor(timestamp: number, timezone: string, locale?: Locale) {
     this.#timestamp = timestamp;
     this.#timezone = timezone;
+    this.#locale = locale;
+  }
+
+  /** Effective locale: per-instance override or the global default */
+  get #effectiveLocale(): Locale {
+    return this.#locale ?? getDefaultLocale();
+  }
+
+  /**
+   * Set the global default locale for all DateTime and Duration output
+   *
+   * @example
+   * ```typescript
+   * import { DateTime, fr } from '@yedoma-labs/tuuru-chrono-tz';
+   * DateTime.setDefaultLocale(fr);
+   * DateTime.now().format('MMMM'); // "juin"
+   * ```
+   */
+  static setDefaultLocale(locale: Locale): void {
+    setDefaultLocale(locale);
+  }
+
+  /**
+   * Per-instance locale (immutable; only affects this instance's output)
+   *
+   * @example
+   * ```typescript
+   * import { de } from '@yedoma-labs/tuuru-chrono-tz';
+   * dt.setLocale(de).format('dddd'); // "Sonntag"
+   * ```
+   */
+  setLocale(locale: Locale): DateTime {
+    return new DateTime(this.#timestamp, this.#timezone, locale);
+  }
+
+  /** Name of the locale this instance renders with */
+  get locale(): string {
+    return this.#effectiveLocale.name;
   }
 
   // =========================================================================
@@ -418,21 +457,31 @@ export class DateTime {
   /**
    * Convert to different timezone
    *
-   * Same instant, different wall-clock representation.
+   * Default: same instant, different wall-clock representation.
+   * With `keepLocalTime: true`: same wall-clock time, different instant
+   * (like moment's `tz(zone, true)`).
    *
    * @param tz - IANA timezone
+   * @param options - `keepLocalTime` to preserve the wall clock
    * @returns New DateTime in target timezone
    *
    * @example
    * ```typescript
-   * const nyc = DateTime.now('America/New_York');
-   * const tokyo = nyc.setTimezone('Asia/Tokyo');
+   * const nyc = DateTime.fromISO('2024-06-09T09:00:00', { timezone: 'America/New_York' });
+   * nyc.setTimezone('Asia/Tokyo');                        // 22:00 in Tokyo (same instant)
+   * nyc.setTimezone('Asia/Tokyo', { keepLocalTime: true }); // 09:00 in Tokyo (new instant)
    * ```
    */
-  setTimezone(tz: string): DateTime {
+  setTimezone(tz: string, options?: { keepLocalTime?: boolean }): DateTime {
     const normalized = normalizeZone(tz);
     if (normalized === this.#timezone) return this;
-    return new DateTime(this.#timestamp, normalized);
+
+    if (options?.keepLocalTime) {
+      const ts = wallClockToTimestamp(this.#wallClock, normalized);
+      return new DateTime(ts, normalized, this.#locale);
+    }
+
+    return new DateTime(this.#timestamp, normalized, this.#locale);
   }
 
   /**
@@ -501,7 +550,7 @@ export class DateTime {
       throw new Error('Invalid time component');
     }
 
-    return new DateTime(wallClockToTimestamp(merged, this.#timezone), this.#timezone);
+    return new DateTime(wallClockToTimestamp(merged, this.#timezone), this.#timezone, this.#locale);
   }
 
   // =========================================================================
@@ -554,7 +603,7 @@ export class DateTime {
         { ...wc, year, month, day },
         this.#timezone
       );
-      result = new DateTime(ts, this.#timezone);
+      result = new DateTime(ts, this.#timezone, this.#locale);
     }
 
     const timeMs =
@@ -564,7 +613,7 @@ export class DateTime {
       (duration.milliseconds ?? 0);
 
     if (timeMs !== 0) {
-      result = new DateTime(result.#timestamp + timeMs, this.#timezone);
+      result = new DateTime(result.#timestamp + timeMs, this.#timezone, this.#locale);
     }
 
     return result;
@@ -651,22 +700,23 @@ export class DateTime {
    * dt.format('ddd, MMM D [at] h:mm A'); // "Sun, Jun 9 at 10:30 AM"
    * ```
    */
-  format(pattern: string): string {
+  format(pattern: string, options?: { locale?: Locale }): string {
     const wc = this.#wallClock;
     const offset = this.offset;
     const hour12 = wc.hour % 12 === 0 ? 12 : wc.hour % 12;
+    const locale = options?.locale ?? this.#effectiveLocale;
 
     const tokens: Record<string, string> = {
       YYYY: pad(wc.year, 4),
       YY: pad(wc.year % 100, 2),
-      MMMM: MONTH_NAMES[wc.month - 1]!,
-      MMM: MONTH_NAMES[wc.month - 1]!.slice(0, 3),
+      MMMM: locale.months[wc.month - 1]!,
+      MMM: locale.monthsShort[wc.month - 1]!,
       MM: pad(wc.month, 2),
       M: String(wc.month),
       DD: pad(wc.day, 2),
       D: String(wc.day),
-      dddd: WEEKDAY_NAMES[this.weekday - 1]!,
-      ddd: WEEKDAY_NAMES[this.weekday - 1]!.slice(0, 3),
+      dddd: locale.weekdays[this.weekday - 1]!,
+      ddd: locale.weekdaysShort[this.weekday - 1]!,
       HH: pad(wc.hour, 2),
       H: String(wc.hour),
       hh: pad(hour12, 2),
@@ -676,8 +726,8 @@ export class DateTime {
       ss: pad(wc.second, 2),
       s: String(wc.second),
       SSS: pad(wc.millisecond, 3),
-      A: wc.hour < 12 ? 'AM' : 'PM',
-      a: wc.hour < 12 ? 'am' : 'pm',
+      A: locale.meridiem(wc.hour, false),
+      a: locale.meridiem(wc.hour, true),
       ZZ: formatOffset(offset, ''),
       Z: formatOffset(offset, ':')
     };
@@ -733,7 +783,7 @@ export class DateTime {
    * ```
    */
   fromNow(options?: RelativeTimeOptions): string {
-    return humanizeDelta(this.#timestamp - Date.now(), options);
+    return humanizeDelta(this.#timestamp - Date.now(), options, options?.locale ?? this.#effectiveLocale);
   }
 
   /**
@@ -745,7 +795,7 @@ export class DateTime {
    * ```
    */
   toNow(options?: RelativeTimeOptions): string {
-    return humanizeDelta(Date.now() - this.#timestamp, options);
+    return humanizeDelta(Date.now() - this.#timestamp, options, options?.locale ?? this.#effectiveLocale);
   }
 
   /**
@@ -757,7 +807,7 @@ export class DateTime {
    * ```
    */
   to(other: DateTime, options?: RelativeTimeOptions): string {
-    return humanizeDelta(other.valueOf() - this.#timestamp, options);
+    return humanizeDelta(other.valueOf() - this.#timestamp, options, options?.locale ?? this.#effectiveLocale);
   }
 
   /**
@@ -768,18 +818,19 @@ export class DateTime {
    * dt.toRelative(); // "today", "yesterday", "last Tuesday", "2024-03-15"
    * ```
    */
-  toRelative(): string {
+  toRelative(options?: { locale?: Locale }): string {
+    const locale = options?.locale ?? this.#effectiveLocale;
     const today = new DateTime(Date.now(), this.#timezone).startOf('day');
     const thisDay = this.startOf('day');
     const dayDiff = Math.round((thisDay.valueOf() - today.valueOf()) / 86400000);
 
-    if (dayDiff === 0) return 'today';
-    if (dayDiff === 1) return 'tomorrow';
-    if (dayDiff === -1) return 'yesterday';
+    if (dayDiff === 0) return locale.calendar.today;
+    if (dayDiff === 1) return locale.calendar.tomorrow;
+    if (dayDiff === -1) return locale.calendar.yesterday;
 
-    const weekdayName = WEEKDAY_NAMES[this.weekday - 1];
-    if (dayDiff > 1 && dayDiff < 7) return `next ${weekdayName}`;
-    if (dayDiff < -1 && dayDiff > -7) return `last ${weekdayName}`;
+    const weekdayName = locale.weekdays[this.weekday - 1]!;
+    if (dayDiff > 1 && dayDiff < 7) return locale.calendar.nextWeek.replace('{0}', weekdayName);
+    if (dayDiff < -1 && dayDiff > -7) return locale.calendar.lastWeek.replace('{0}', weekdayName);
 
     return this.format('YYYY-MM-DD');
   }
@@ -833,7 +884,7 @@ export class DateTime {
         throw new Error(`Invalid time unit: ${unit}`);
     }
 
-    return new DateTime(wallClockToTimestamp(target, this.#timezone), this.#timezone);
+    return new DateTime(wallClockToTimestamp(target, this.#timezone), this.#timezone, this.#locale);
   }
 
   /**
@@ -857,7 +908,7 @@ export class DateTime {
       { seconds: 1 };
 
     const startOfNext = this.startOf(unit).add(nextUnit);
-    return new DateTime(startOfNext.valueOf() - 1, this.#timezone);
+    return new DateTime(startOfNext.valueOf() - 1, this.#timezone, this.#locale);
   }
 
   isValid(): boolean {

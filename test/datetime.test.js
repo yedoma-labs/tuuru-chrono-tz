@@ -472,6 +472,80 @@ describe('DateTime relative time', () => {
   });
 });
 
+describe('DateTime setTimezone keepLocalTime', () => {
+  const nyc = DateTime.fromISO('2024-06-09T09:00:00', { timezone: 'America/New_York' });
+
+  it('default conversion keeps the instant', () => {
+    const tokyo = nyc.setTimezone('Asia/Tokyo');
+    assert.equal(tokyo.valueOf(), nyc.valueOf());
+    assert.equal(tokyo.hour, 22);
+  });
+
+  it('keepLocalTime keeps the wall clock and shifts the instant', () => {
+    const tokyo = nyc.setTimezone('Asia/Tokyo', { keepLocalTime: true });
+    assert.equal(tokyo.hour, 9);
+    assert.equal(tokyo.toISO(), '2024-06-09T09:00:00.000+09:00');
+    assert.notEqual(tokyo.valueOf(), nyc.valueOf());
+    // NY is UTC-4 (DST), Tokyo +9 → same wall clock is 13 hours earlier as an instant
+    assert.equal((nyc.valueOf() - tokyo.valueOf()) / 3600000, 13);
+  });
+
+  it('keepLocalTime to UTC', () => {
+    const utc = nyc.setTimezone('UTC', { keepLocalTime: true });
+    assert.equal(utc.toISO(), '2024-06-09T09:00:00.000Z');
+  });
+});
+
+describe('DateTime DST overlap and gap resolution', () => {
+  it('fall-back overlap picks the earlier instant', () => {
+    // 2024-11-03 01:30 happens twice in America/New_York (EDT then EST).
+    // Documented behavior: the first (earlier, EDT) occurrence wins.
+    const ambiguous = DateTime.fromObject(
+      { year: 2024, month: 11, day: 3, hour: 1, minute: 30 },
+      { timezone: 'America/New_York' }
+    );
+    assert.equal(ambiguous.offset, -240); // EDT
+    assert.equal(ambiguous.toUTC().toISO(), '2024-11-03T05:30:00.000Z');
+  });
+
+  it('spring-forward gap shifts forward', () => {
+    // 2024-03-10 02:30 does not exist in America/New_York
+    const gap = DateTime.fromObject(
+      { year: 2024, month: 3, day: 10, hour: 2, minute: 30 },
+      { timezone: 'America/New_York' }
+    );
+    assert.equal(gap.hour, 3); // lands on 03:30 EDT
+  });
+});
+
+describe('DateTime coverage extras', () => {
+  it('fromUnix with timezone argument', () => {
+    const dt = DateTime.fromUnix(1717929000, 'Asia/Tokyo');
+    assert.equal(dt.timezone, 'Asia/Tokyo');
+    assert.equal(dt.hour, 19);
+  });
+
+  it('fromFormat with SSS and lowercase meridiem', () => {
+    const ms = DateTime.fromFormat('2024-06-09 10:30:45.123', 'YYYY-MM-DD HH:mm:ss.SSS');
+    assert.equal(ms.millisecond, 123);
+    const pm = DateTime.fromFormat('2024-06-09 7:05 pm', 'YYYY-MM-DD h:mm a');
+    assert.equal(pm.hour, 19);
+  });
+
+  it('fromNow ceil rounding', () => {
+    const past = DateTime.fromMilliseconds(Date.now() - 90 * 60000); // 1.5h ago
+    assert.equal(past.fromNow({ rounding: 'ceil' }), '2 hours ago');
+    assert.equal(past.fromNow({ rounding: 'floor' }), '1 hour ago');
+  });
+
+  it('endOf week and year', () => {
+    const dt = DateTime.fromISO('2024-06-09T10:30:00Z'); // Sunday
+    assert.equal(dt.endOf('week').toISO(), '2024-06-09T23:59:59.999Z'); // Sunday is last day
+    assert.equal(DateTime.fromISO('2024-06-05').endOf('week').format('YYYY-MM-DD dddd'), '2024-06-09 Sunday');
+    assert.equal(dt.endOf('year').toISO(), '2024-12-31T23:59:59.999Z');
+  });
+});
+
 describe('DateTime validity & misc', () => {
   it('isValid detects NaN timestamps', () => {
     assert.ok(DateTime.now().isValid());

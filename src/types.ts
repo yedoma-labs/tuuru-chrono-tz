@@ -103,6 +103,7 @@ export interface ParseOptions {
 export interface RelativeTimeOptions {
   short?: boolean;
   rounding?: 'floor' | 'ceil' | 'round';
+  locale?: import('./locale.js').Locale;
 }
 
 /**
@@ -112,6 +113,7 @@ export interface HumanizeOptions {
   short?: boolean;
   largest?: number;
   round?: boolean;
+  locale?: import('./locale.js').Locale;
 }
 
 /**

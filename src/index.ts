@@ -10,6 +10,12 @@ export { DateTime } from './datetime.js';
 export { Duration } from './duration.js';
 export { Timezone } from './timezone.js';
 
+// Locales (tree-shakeable: unused locales are dropped by bundlers)
+export { en, setDefaultLocale, getDefaultLocale } from './locale.js';
+export { de } from './locales/de.js';
+export { fr } from './locales/fr.js';
+export type { Locale, RelativeUnit } from './locale.js';
+
 export type {
   DateObject,
   TimeObject,

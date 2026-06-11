@@ -2,6 +2,18 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { Timezone, TIMEZONE_NAMES, TIMEZONE_COUNT, TZDATA_VERSION } from '../dist/esm/index.js';
+import { getTimezoneData } from '../dist/esm/tzdata/index.js';
+
+describe('getTimezoneData', () => {
+  it('returns the full IANA tables', () => {
+    const data = getTimezoneData();
+    assert.equal(data.version, TZDATA_VERSION);
+    assert.ok(Object.keys(data.zones).length > 300);
+    assert.ok(Object.keys(data.rules).length > 100);
+    assert.equal(data.links['US/Eastern'], 'America/New_York');
+    assert.ok(Array.isArray(data.zones['Africa/Algiers']));
+  });
+});
 
 describe('Timezone.listAll', () => {
   it('returns the full timezone list', () => {

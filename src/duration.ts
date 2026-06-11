@@ -5,6 +5,8 @@
  */
 
 import type { DurationObject, HumanizeOptions } from './types.js';
+import { getDefaultLocale } from './locale.js';
+import type { RelativeUnit } from './locale.js';
 
 /**
  * Immutable Duration class
@@ -223,38 +225,30 @@ export class Duration {
     const parts: string[] = [];
     const short = options?.short ?? false;
     const largest = options?.largest ?? Infinity;
+    const loc = (options?.locale ?? getDefaultLocale()).duration;
 
-    const years = d.years;
-    const months = d.months;
-    const days = d.days;
-    const hours = d.hours;
-    const minutes = d.minutes;
-    const seconds = d.seconds;
-    
-    if (years > 0 && parts.length < largest) {
-      parts.push(short ? `${years}y` : `${years} year${years > 1 ? 's' : ''}`);
+    const components: Array<[RelativeUnit, number]> = [
+      ['year', d.years],
+      ['month', d.months],
+      ['day', d.days],
+      ['hour', d.hours],
+      ['minute', d.minutes],
+      ['second', d.seconds]
+    ];
+
+    for (const [unit, value] of components) {
+      if (value > 0 && parts.length < largest) {
+        parts.push(short
+          ? `${value}${loc.shortUnits[unit]}`
+          : `${value} ${loc.units[unit][value === 1 ? 0 : 1]}`);
+      }
     }
-    if (months > 0 && parts.length < largest) {
-      parts.push(short ? `${months}mo` : `${months} month${months > 1 ? 's' : ''}`);
-    }
-    if (days > 0 && parts.length < largest) {
-      parts.push(short ? `${days}d` : `${days} day${days > 1 ? 's' : ''}`);
-    }
-    if (hours > 0 && parts.length < largest) {
-      parts.push(short ? `${hours}h` : `${hours} hour${hours > 1 ? 's' : ''}`);
-    }
-    if (minutes > 0 && parts.length < largest) {
-      parts.push(short ? `${minutes}m` : `${minutes} minute${minutes > 1 ? 's' : ''}`);
-    }
-    if (seconds > 0 && parts.length < largest) {
-      parts.push(short ? `${seconds}s` : `${seconds} second${seconds > 1 ? 's' : ''}`);
-    }
-    
+
     if (parts.length === 0) {
-      return short ? '0s' : '0 seconds';
+      return short ? loc.zeroShort : loc.zero;
     }
-    
-    return short ? parts.join(' ') : parts.join(', ');
+
+    return short ? parts.join(' ') : parts.join(loc.listSeparator);
   }
   
   /**

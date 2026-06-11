@@ -7,15 +7,7 @@
  */
 
 import type { RelativeTimeOptions } from './types.js';
-
-export const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-] as const;
-
-export const WEEKDAY_NAMES = [
-  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
-] as const;
+import type { Locale, RelativeUnit } from './locale.js';
 
 export interface WallClock {
   year: number;
@@ -118,7 +110,18 @@ export function wallClockToTimestamp(wc: WallClock, tz: string): number {
   const guess = asUTC - offset1 * 60000;
   const offset2 = getOffsetMinutes(guess, tz);
 
-  return offset2 === offset1 ? guess : asUTC - offset2 * 60000;
+  if (offset2 === offset1) return guess;
+
+  // Offsets disagree: either an overlap (both candidates valid; the
+  // earlier one was already produced by guess) or a gap. A candidate is
+  // valid only if its offset reproduces the requested wall clock.
+  const candidate = asUTC - offset2 * 60000;
+  if (getOffsetMinutes(candidate, tz) === offset2) {
+    return candidate;
+  }
+
+  // Gap (e.g. 02:30 during spring-forward): shift forward by the gap size
+  return guess;
 }
 
 export function daysInMonth(year: number, month: number): number {
@@ -143,37 +146,44 @@ export function escapeRegExp(str: string): string {
 /**
  * Humanize a signed delta. Positive = future ("in X"), negative = past ("X ago").
  */
-export function humanizeDelta(deltaMs: number, options?: RelativeTimeOptions): string {
+export function humanizeDelta(
+  deltaMs: number,
+  options: RelativeTimeOptions | undefined,
+  locale: Locale
+): string {
   const future = deltaMs >= 0;
   const abs = Math.abs(deltaMs);
   const short = options?.short ?? false;
   const rounding = options?.rounding ?? 'round';
+  const rt = locale.relativeTime;
 
   const roundFn = rounding === 'floor' ? Math.floor
     : rounding === 'ceil' ? Math.ceil
     : Math.round;
 
-  const units: Array<[threshold: number, divisor: number, long: string, abbr: string]> = [
-    [60 * 1000, 1000, 'second', 's'],
-    [60 * 60 * 1000, 60 * 1000, 'minute', 'm'],
-    [24 * 60 * 60 * 1000, 60 * 60 * 1000, 'hour', 'h'],
-    [30 * 24 * 60 * 60 * 1000, 24 * 60 * 60 * 1000, 'day', 'd'],
-    [365 * 24 * 60 * 60 * 1000, 30 * 24 * 60 * 60 * 1000, 'month', 'mo'],
-    [Infinity, 365 * 24 * 60 * 60 * 1000, 'year', 'y']
+  const units: Array<[threshold: number, divisor: number, unit: RelativeUnit]> = [
+    [60 * 1000, 1000, 'second'],
+    [60 * 60 * 1000, 60 * 1000, 'minute'],
+    [24 * 60 * 60 * 1000, 60 * 60 * 1000, 'hour'],
+    [30 * 24 * 60 * 60 * 1000, 24 * 60 * 60 * 1000, 'day'],
+    [365 * 24 * 60 * 60 * 1000, 30 * 24 * 60 * 60 * 1000, 'month'],
+    [Infinity, 365 * 24 * 60 * 60 * 1000, 'year']
   ];
 
-  for (const [threshold, divisor, long, abbr] of units) {
+  const template = future ? rt.future : rt.past;
+
+  for (const [threshold, divisor, unit] of units) {
     if (abs < threshold) {
       const value = Math.max(roundFn(abs / divisor), abs < divisor ? 0 : 1);
 
-      if (long === 'second' && value < 5) {
-        return future
-          ? (short ? 'now' : 'in a few seconds')
-          : (short ? 'now' : 'a few seconds ago');
+      if (unit === 'second' && value < 5) {
+        return short ? rt.now : template.replace('{0}', rt.fewSeconds);
       }
 
-      const label = short ? `${value}${abbr}` : `${value} ${long}${value === 1 ? '' : 's'}`;
-      return future ? `in ${label}` : `${label} ago`;
+      const label = short
+        ? `${value}${rt.shortUnits[unit]}`
+        : `${value} ${rt.units[unit][value === 1 ? 0 : 1]}`;
+      return template.replace('{0}', label);
     }
   }
 

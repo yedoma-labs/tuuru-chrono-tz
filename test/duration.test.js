@@ -65,6 +65,14 @@ describe('Duration getters', () => {
     assert.equal(long.days, 5);
   });
 
+  it('months component can reach 12 before a year ticks over', () => {
+    // 360 days < 365, so no year — 12 months exactly
+    const d = Duration.fromObject({ days: 360 });
+    assert.equal(d.years, 0);
+    assert.equal(d.months, 12);
+    assert.equal(d.days, 0);
+  });
+
   it('component getters keep the sign', () => {
     const d = Duration.fromObject({ minutes: -90 });
     assert.equal(d.hours, -1);
