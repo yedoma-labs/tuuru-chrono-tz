@@ -43,7 +43,7 @@ jobs:
 
       - name: Test
         # explicit file list: --test glob needs Node >=21, directory form is unreliable
-        run: node --test test/datetime.test.js test/duration.test.js test/timezone.test.js test/locale.test.js test/cjs.test.js
+        run: node --test test/datetime.test.js test/duration.test.js test/timezone.test.js test/locale.test.js test/security.test.js test/cjs.test.js
 
       - name: Manual verification scripts
         run: |

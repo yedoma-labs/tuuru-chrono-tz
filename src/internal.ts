@@ -128,6 +128,12 @@ export function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
+/** ISO weekday (1 = Monday, 7 = Sunday) from a wall clock's date parts */
+export function weekdayOf(wc: WallClock): number {
+  const utcDay = new Date(Date.UTC(wc.year, wc.month - 1, wc.day)).getUTCDay();
+  return ((utcDay + 6) % 7) + 1;
+}
+
 export function pad(n: number, width: number): string {
   return String(Math.abs(n)).padStart(width, '0');
 }

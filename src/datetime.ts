@@ -22,6 +22,7 @@ import {
   wallClockToTimestamp,
   normalizeZone,
   daysInMonth,
+  weekdayOf,
   pad,
   formatOffset,
   escapeRegExp,
@@ -436,9 +437,7 @@ export class DateTime {
 
   /** Weekday 1-7 (1 = Monday, 7 = Sunday) */
   get weekday(): number {
-    const wc = this.#wallClock;
-    const utcDay = new Date(Date.UTC(wc.year, wc.month - 1, wc.day)).getUTCDay();
-    return ((utcDay + 6) % 7) + 1;
+    return weekdayOf(this.#wallClock);
   }
 
   get timezone(): string {
@@ -572,6 +571,15 @@ export class DateTime {
    * ```
    */
   add(duration: DurationObject): DateTime {
+    // Reject non-finite components up front: otherwise they propagate into
+    // the timestamp and only surface later as a cryptic native
+    // "Invalid time value" from toISO/toDate.
+    for (const [unit, value] of Object.entries(duration)) {
+      if (value !== undefined && !Number.isFinite(value)) {
+        throw new Error(`Invalid duration: ${unit} must be a finite number, got ${value}`);
+      }
+    }
+
     const wc = this.#wallClock;
 
     const monthsToAdd = (duration.years ?? 0) * 12 + (duration.months ?? 0);
@@ -704,6 +712,7 @@ export class DateTime {
     const wc = this.#wallClock;
     const offset = this.offset;
     const hour12 = wc.hour % 12 === 0 ? 12 : wc.hour % 12;
+    const weekday = weekdayOf(wc); // reuse wc instead of re-reading via getter
     const locale = options?.locale ?? this.#effectiveLocale;
 
     const tokens: Record<string, string> = {
@@ -715,8 +724,8 @@ export class DateTime {
       M: String(wc.month),
       DD: pad(wc.day, 2),
       D: String(wc.day),
-      dddd: locale.weekdays[this.weekday - 1]!,
-      ddd: locale.weekdaysShort[this.weekday - 1]!,
+      dddd: locale.weekdays[weekday - 1]!,
+      ddd: locale.weekdaysShort[weekday - 1]!,
       HH: pad(wc.hour, 2),
       H: String(wc.hour),
       hh: pad(hour12, 2),

@@ -304,6 +304,13 @@ describe('DateTime arithmetic', () => {
     assert.equal(dt.add({ months: 2 }).subtract({ months: 2 }).valueOf(), dt.valueOf());
   });
 
+  it('rejects non-finite duration components', () => {
+    assert.throws(() => dt.add({ hours: Infinity }), /finite/);
+    assert.throws(() => dt.add({ days: NaN }), /finite/);
+    assert.throws(() => dt.add({ months: -Infinity }), /finite/);
+    assert.throws(() => dt.subtract({ seconds: Infinity }), /finite/);
+  });
+
   it('diff returns a signed Duration', () => {
     const a = DateTime.fromISO('2024-06-09T10:00:00Z');
     const b = DateTime.fromISO('2024-06-09T12:30:00Z');
