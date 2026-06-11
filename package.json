@@ -34,13 +34,15 @@
     "build-tzdata": "pnpm download-iana && pnpm parse-iana",
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'}))\"",
     "pretest": "pnpm build",
-    "test": "node --test test/datetime.test.js test/duration.test.js test/timezone.test.js test/cjs.test.js",
+    "test": "node --test test/datetime.test.js test/duration.test.js test/timezone.test.js test/locale.test.js test/cjs.test.js",
+    "size": "node scripts/check-size.js",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "esbuild": "^0.28.0",
     "typescript": "^5.4.0"
   },
   "files": [
