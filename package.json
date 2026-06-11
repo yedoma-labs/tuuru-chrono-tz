@@ -1,0 +1,66 @@
+{
+  "name": "@yedoma-labs/tuuru-chrono-tz",
+  "version": "0.1.0",
+  "description": "TypeScript-first date/time library with built-in IANA timezone support. Immutable, zero-deps, <20KB.",
+  "type": "module",
+  "sideEffects": false,
+  "keywords": [
+    "date",
+    "time",
+    "datetime",
+    "timezone",
+    "tz",
+    "iana",
+    "world",
+    "global",
+    "immutable",
+    "typescript",
+    "chrono",
+    "zero-dependency"
+  ],
+  "author": "yedoma-labs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yedoma-labs/tuuru-chrono-tz"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@9.1.0",
+  "scripts": {
+    "download-iana": "node scripts/download-iana.js",
+    "parse-iana": "node scripts/parse-iana.js",
+    "build-tzdata": "pnpm download-iana && pnpm parse-iana",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'}))\"",
+    "pretest": "pnpm build",
+    "test": "node --test \"test/*.test.js\"",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  }
+}
