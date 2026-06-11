@@ -4,380 +4,217 @@
 
 TypeScript-first date/time library with **built-in IANA timezone support**. No external packages. No moment-timezone. Just immutable, tree-shakeable time handling that works everywhere.
 
+[![CI](https://github.com/yedoma-labs/tuuru-chrono-tz/actions/workflows/ci.yml/badge.svg)](https://github.com/yedoma-labs/tuuru-chrono-tz/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@yedoma-labs/tuuru-chrono-tz.svg)](https://www.npmjs.com/package/@yedoma-labs/tuuru-chrono-tz)
-[![Bundle size](https://img.shields.io/bundlephobia/minzip/@yedoma-labs/tuuru-chrono-tz)](https://bundlephobia.com/package/@yedoma-labs/tuuru-chrono-tz)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
----
-
-## 🔥 Why tuuru-chrono-tz?
-
-Based on **298 real user pain points** from date-fns, moment.js, and luxon:
-
-### ✅ Built-in Timezone Support
-**The #1 requested feature** (273 👍 on date-fns)
-
-```typescript
-import { DateTime } from '@yedoma-labs/tuuru-chrono-tz';
-
-// No external packages needed!
-const tokyo = DateTime.now('Asia/Tokyo');
-const nyc = DateTime.now('America/New_York');
-
-// Convert between timezones
-const tokyoTime = nyc.setTimezone('Asia/Tokyo');
-```
-
-**Compare**:
-- ❌ **date-fns**: Zero timezone support (requires date-fns-tz)
-- ❌ **moment.js**: Requires moment-timezone (+30KB)
-- ✅ **tuuru-chrono-tz**: Built-in, zero extra packages
+Built to solve **298 real user pain points** collected from date-fns, moment.js, and luxon issue trackers and Stack Overflow.
 
 ---
 
-### ✅ Immutable API
-**#1 reason moment.js was deprecated**
+## Why?
 
-```typescript
-const original = DateTime.now();
-const modified = original.add({ hours: 2 });
-
-// original is unchanged! ✅
-console.assert(original !== modified);
-```
-
----
-
-### ✅ Small Bundle Size
-**date-fns exploded from 4.7MB to 21MB!**
-
-- **tuuru-chrono-tz**: < 20KB gzipped (with ALL features)
-- moment.js: 72KB gzipped
-- luxon: 65KB gzipped
-- date-fns: 13KB (but no timezones!)
+| Pain point | Evidence | Here |
+|------------|----------|------|
+| No timezone support | 273 👍 on date-fns | Built-in IANA database, zero extra packages |
+| Mutable API | #1 reason moment.js was deprecated | Every method returns a new instance |
+| Broken duration formatting | luxon truncates 26h to 02h | Cascading tokens: 26h as `HH:mm` → `26:00` |
+| Lenient parsing | Security issue | Strict by default — impossible dates throw |
+| Poor TypeScript | Retrofitted types | TypeScript-first, literal types for timezones |
+| Confusing UTC | 116 👍 | Explicit `toUTC()` / `toLocal()` / offsets in ISO output |
 
 ---
 
-### ✅ TypeScript-First
-**Not retrofitted - built in TypeScript from day 1**
-
-```typescript
-// Literal types prevent errors
-dt.setMonth(13); // ❌ TypeScript error!
-
-// Perfect autocomplete
-DateTime.now('America/New_York'); // ✅ IntelliSense shows all timezones
-```
-
----
-
-### ✅ Duration Formatting That Works
-**Every other library has broken duration formatting**
-
-```typescript
-const duration = future.diff(past);
-
-duration.humanize();              // "2 hours, 30 minutes"
-duration.humanize({ short: true }); // "2h 30m"
-duration.format('HH:mm:ss');      // "02:30:00"
-```
-
----
-
-## 📦 Installation
+## Installation
 
 ```bash
-# pnpm (recommended)
-pnpm add @yedoma-labs/tuuru-chrono-tz
-
-# npm
-npm install @yedoma-labs/tuuru-chrono-tz
-
-# yarn
-yarn add @yedoma-labs/tuuru-chrono-tz
+pnpm add @yedoma-labs/tuuru-chrono-tz   # or npm install / yarn add
 ```
 
-**Zero dependencies.** No surprises.
+Zero runtime dependencies. Dual ESM + CommonJS build. Node >= 18.
 
 ---
 
-## 🚀 Quick Start
-
-### Basic Usage
+## Quick Start
 
 ```typescript
-import { DateTime } from '@yedoma-labs/tuuru-chrono-tz';
+import { DateTime, Duration, Timezone } from '@yedoma-labs/tuuru-chrono-tz';
 
-// Create datetime
-const now = DateTime.now();
-const utc = DateTime.nowUTC();
-const custom = DateTime.fromISO('2024-06-09T10:30:00Z');
+// Create
+const now = DateTime.now();                          // UTC
+const tokyo = DateTime.now('Asia/Tokyo');
+const local = DateTime.now('local');
+const parsed = DateTime.fromISO('2024-06-09T10:30:00Z');
 
 // Format
-now.format('YYYY-MM-DD HH:mm:ss'); // "2024-06-09 10:30:00"
-now.toISO(); // "2024-06-09T10:30:00.000Z"
+now.format('YYYY-MM-DD HH:mm:ss');  // "2024-06-09 10:30:00"
+now.format('ddd, MMM D [at] h:mm A'); // "Sun, Jun 9 at 10:30 AM"
+tokyo.toISO();                       // "2024-06-09T19:30:00.000+09:00"
 
-// Arithmetic (immutable!)
-const tomorrow = now.add({ days: 1 });
-const yesterday = now.subtract({ days: 1 });
+// Arithmetic (immutable, calendar-aware)
+const tomorrow = now.add({ days: 1 });     // keeps local time across DST
+const lastMonth = now.subtract({ months: 1 }); // clamps month-end overflow
 
 // Comparison
-now.isBefore(tomorrow); // true
-now.isAfter(yesterday);  // true
+now.isBefore(tomorrow);      // true
+now.isSame(tomorrow, 'month'); // unit-based, timezone-aware
 ```
 
----
-
-### Timezone Support
+### Timezones
 
 ```typescript
-import { DateTime, Timezone } from '@yedoma-labs/tuuru-chrono-tz';
-
-// Create with timezone
-const tokyo = DateTime.now('Asia/Tokyo');
-const nyc = DateTime.now('America/New_York');
-
-// Convert timezone (keeps the moment in time)
-const sameMomentInTokyo = nyc.setTimezone('Asia/Tokyo');
-
-// UTC operations
+// Convert (same instant, different wall clock)
+const nyc = tokyo.setTimezone('America/New_York');
 const utc = tokyo.toUTC();
-const local = utc.toLocal();
 
-// Search timezones
-const zones = Timezone.search('New York');
-// → ['America/New_York', ...]
+// Getters are timezone-aware; month is 1-12, weekday 1-7 (Monday=1)
+tokyo.hour;    // 19
+tokyo.offset;  // 540 (east-positive minutes)
 
-// List all 400+ timezones
-const all = Timezone.listAll();
+// Utilities
+Timezone.search('New York');        // ['America/New_York']
+Timezone.isValid('Asia/Tokyo');     // true
+Timezone.getCanonical('US/Eastern'); // 'America/New_York'
+Timezone.getOffset('Asia/Kolkata');  // 330
+Timezone.isDST('America/New_York'); // true in summer
+Timezone.listAll();                  // all 568 zones (incl. aliases)
 ```
-
----
-
-### Duration & Relative Time
-
-```typescript
-import { DateTime } from '@yedoma-labs/tuuru-chrono-tz';
-
-const posted = DateTime.fromISO('2024-06-08T10:00:00Z');
-
-// Relative time
-posted.fromNow(); // "1 day ago"
-posted.toNow();   // "in 1 day"
-posted.toRelative(); // "yesterday"
-
-// Duration formatting
-const duration = future.diff(past);
-duration.humanize(); // "2 hours, 30 minutes"
-duration.format('HH:mm:ss'); // "02:30:00"
-```
-
----
 
 ### Strict Parsing
 
 ```typescript
-import { DateTime } from '@yedoma-labs/tuuru-chrono-tz';
+DateTime.fromISO('2024-02-30');            // ❌ throws: day out of range
+DateTime.fromISO('2024-13-01');            // ❌ throws: month out of range
+DateTime.fromISO('2024-06-09T10:30:00Z');  // ✅
 
-// Strict by default (security-first)
-DateTime.fromISO('2024-13-01');
-// ❌ Throws: Month must be 1-12, got 13
-
-DateTime.fromFormat('2-12-12', 'YYYY-MM-DD');
-// ❌ Throws: Day does not match pattern
-
-// Valid input only
-DateTime.fromISO('2024-06-09T10:30:00Z');
-// ✅ Works perfectly
+// Custom formats are strict too — input must match exactly
+DateTime.fromFormat('09/06/2024 7:05 PM', 'DD/MM/YYYY h:mm A');
+DateTime.fromFormat('2024-06-09', 'YYYY-MM-DD', { timezone: 'Asia/Tokyo' });
 ```
 
----
+### Durations & Relative Time
 
-## 🎯 Key Features
+```typescript
+const duration = later.diff(earlier);        // returns Duration
 
-### Evidence-Based Design
-Built to solve **298 real user pain points** from:
-- ✅ date-fns (96 GitHub issues)
-- ✅ moment.js (65 GitHub issues)
-- ✅ luxon (84 GitHub issues)
-- ✅ Stack Overflow (42 questions, 891+ score)
+duration.humanize();                // "2 hours, 30 minutes"
+duration.humanize({ short: true }); // "2h 30m"
+duration.format('HH:mm:ss');        // "02:30:00"
+Duration.fromObject({ hours: 26 }).format('HH:mm'); // "26:00" — no truncation
+Duration.fromISO('P1DT12H').totalHours;             // 36
 
-### What We Fixed
-
-| Pain Point | Evidence | Solution |
-|------------|----------|----------|
-| No timezone support | 273 👍 | Built-in IANA database |
-| Mutable API | moment deprecated | Immutable everything |
-| Bundle size | 21MB explosion | < 20KB gzipped |
-| Duration broken | All libraries | Working `.humanize()` |
-| No global locale | 89 👍 | `setDefaultLocale()` |
-| Lenient parsing | Security issue | Strict by default |
-| Poor TypeScript | Retrofitted | TypeScript-first |
-| Confusing UTC | 116 👍 | Clear UTC operations |
-
----
-
-## 🌍 About "tuuru"
-
-**tuuru** (Yakutian: туору) means "world" or "earth" in the Yakut language.
-
-**Why it's perfect**:
-- Yakutia spans **11 time zones** (most of any region!)
-- The library helps developers handle **timezones across the world**
-- Cultural connection: Yakutian people deeply understand timezones
-
-> **tuuru-chrono-tz** = "The world's time, in every zone" 🌍⏰
-
----
-
-## 📋 IANA Timezone Data
-
-This library includes the **complete IANA timezone database**.
-
-### Updating Timezone Data
-
-```bash
-# Download latest IANA tzdata
-pnpm download-iana
-
-# Parse and generate TypeScript
-pnpm parse-iana
-
-# Or do both
-pnpm build-tzdata
+posted.fromNow();     // "5 minutes ago" / "in 2 hours"
+posted.toRelative();  // "today", "yesterday", "last Tuesday"
 ```
 
-The scripts:
-- ✅ Download from https://www.iana.org/time-zones
-- ✅ Parse zone definitions, rules, and links
-- ✅ Generate TypeScript types
-- ✅ Create compact binary format
+### Format Tokens
+
+`YYYY` `YY` year · `MMMM` `MMM` `MM` `M` month · `DD` `D` day · `dddd` `ddd` weekday ·
+`HH` `H` hour 0-23 · `hh` `h` hour 1-12 · `mm` `m` minute · `ss` `s` second ·
+`SSS` millisecond · `A` `a` AM/PM · `Z` `ZZ` offset · `[text]` escaped literal
 
 ---
 
-## 🛠️ Development
+## Status
 
-### Setup
+Core is complete and covered by 143 automated tests (parsing rejection tables, DST
+spring-forward/fall-back arithmetic, timezone-aware bucketing, dual-package smoke test).
+CI runs Node 18/20/22/24 on Linux plus Node 22 on macOS and Windows.
+
+| Component | Status |
+|-----------|--------|
+| DateTime (parse, format, arithmetic, zones) | ✅ |
+| Duration (fromISO, humanize, cascading format) | ✅ |
+| Timezone utilities (search, canonical links, DST) | ✅ |
+| IANA data pipeline (2026b, 568 zones, 256 links) | ✅ |
+| ESM + CJS dual build | ✅ |
+
+**Roadmap to v1.0**: native IANA-rule offset math (current math uses cached
+`Intl.DateTimeFormat` — accurate, but rule-based math will be faster), locale
+support for month/weekday names, bundle-size pass (< 20KB gzipped target).
+
+**Design notes**:
+- All timezone offsets are east-positive (Tokyo `+540`, New York `-240` in DST), matching ISO 8601.
+- Wall-clock resolution uses the standard two-pass guess: DST gaps shift forward, overlaps pick the earlier instant.
+- `Duration` months/years use fixed 30/365-day approximations; use `DateTime.add()` for calendar-accurate month math.
+
+---
+
+## Development
 
 ```bash
-# Clone repository
 git clone https://github.com/yedoma-labs/tuuru-chrono-tz.git
 cd tuuru-chrono-tz
-
-# Install dependencies (uses pnpm)
 pnpm install
-
-# Download and parse IANA data
-pnpm build-tzdata
-
-# Build
-pnpm build
-
-# Test
-pnpm test
+pnpm build     # ESM + CJS into dist/
+pnpm test      # builds, then runs node:test suite
 ```
+
+Requires Node >= 18 and pnpm (`corepack enable` activates the pinned version).
 
 ### Project Structure
 
 ```
-tuuru-chrono-tz/
-├── src/
-│   ├── datetime.ts       # Main DateTime class
-│   ├── duration.ts       # Duration class
-│   ├── timezone.ts       # Timezone utilities
-│   ├── tzdata/           # Generated IANA data
-│   │   ├── timezones.ts  # 400+ timezone names
-│   │   ├── data.ts       # Timezone rules & offsets
-│   │   └── index.ts      # Public API
-│   └── index.ts          # Main entry point
-├── scripts/
-│   ├── download-iana.js  # Download IANA tzdata
-│   └── parse-iana.js     # Parse and generate TS
-├── data/
-│   └── iana/             # Downloaded IANA files
-└── dist/                 # Compiled output
+src/
+├── datetime.ts       # DateTime class (immutable, timezone-aware)
+├── duration.ts       # Duration class
+├── timezone.ts       # Timezone utilities
+├── internal.ts       # Shared timezone math (Intl-backed)
+├── types.ts          # Public types
+├── index.ts          # Entry point
+└── tzdata/           # Generated from IANA (do not edit)
+    ├── timezones.ts  # 568 timezone names (literal types)
+    ├── links.ts      # 256 alias → canonical mappings
+    ├── iana-data.ts  # Full zone/rule tables
+    └── data.ts       # Types + getTimezoneData()
+scripts/
+├── download-iana.js  # Fetch tzdata release from iana.org
+└── parse-iana.js     # Generate src/tzdata/ modules
+test/                 # node:test suite (143 tests)
 ```
 
----
+### Updating IANA Timezone Data
 
-## 🎓 Migration Guides
+IANA releases new tzdata several times a year.
 
-### From moment.js
-
-```typescript
-// Before (moment.js)
-const moment = require('moment-timezone');
-const m = moment.tz('2024-06-09', 'America/New_York');
-m.add(1, 'day'); // ❌ Mutates!
-
-// After (tuuru-chrono-tz)
-import { DateTime } from '@yedoma-labs/tuuru-chrono-tz';
-const dt = DateTime.fromISO('2024-06-09', { timezone: 'America/New_York' });
-const tomorrow = dt.add({ days: 1 }); // ✅ Immutable!
+```bash
+pnpm download-iana          # latest (or: pnpm download-iana 2026b)
+pnpm parse-iana             # regenerate src/tzdata/
+pnpm build && pnpm test
 ```
 
-### From date-fns
+The downloader validates the version argument, follows https-only redirects,
+and extracts with `tar` via `execFileSync` (no shell). Current data version:
+`TZDATA_VERSION` export (2026b).
 
-```typescript
-// Before (date-fns + date-fns-tz)
-import { format } from 'date-fns';
-import { utcToZonedTime } from 'date-fns-tz';
+### Troubleshooting
 
-const date = new Date('2024-06-09T10:30:00Z');
-const zoned = utcToZonedTime(date, 'America/New_York');
-const formatted = format(zoned, 'yyyy-MM-dd HH:mm:ss');
-
-// After (tuuru-chrono-tz)
-import { DateTime } from '@yedoma-labs/tuuru-chrono-tz';
-
-const dt = DateTime.fromISO('2024-06-09T10:30:00Z');
-const formatted = dt.setTimezone('America/New_York').format('YYYY-MM-DD HH:mm:ss');
-```
+- **`tar: command not found` (Windows)** — install Git Bash or WSL, or extract `data/tzdata.tar.gz` manually.
+- **HTTP 404 on download** — version doesn't exist; check https://data.iana.org/time-zones/releases/ or use `pnpm download-iana` for latest.
+- **`require()` of the package fails** — rebuild; `pnpm build` writes the `dist/cjs/package.json` type marker the CJS build needs.
 
 ---
 
-## 📊 Benchmarks
+## About "tuuru"
 
-Coming soon!
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! This library is **evidence-based** - every feature solves a real user problem.
-
-Before adding features:
-1. Find evidence (GitHub issue with reactions, Stack Overflow question with high score)
-2. Open an issue discussing the pain point
-3. Get approval
-4. Submit PR
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+**tuuru** (Yakutian: туору) means "world" in the Yakut language. Yakutia spans
+**11 time zones** — more than any other region. Fitting namesake for a timezone library.
 
 ---
 
-## 📄 License
+## Contributing
+
+This library is evidence-based — every feature solves a documented user problem.
+Before adding features: find evidence (GitHub issue with reactions, high-score
+Stack Overflow question), open an issue, then PR.
+
+## License
 
 MIT © [yedoma-labs](https://github.com/yedoma-labs)
 
----
-
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **IANA** for the timezone database
 - **298 developers** who shared their pain points
-- **Yakutian culture** for the beautiful name
-
----
-
-## 🔗 Links
-
-- [NPM Package](https://www.npmjs.com/package/@yedoma-labs/tuuru-chrono-tz)
-- [GitHub Repository](https://github.com/yedoma-labs/tuuru-chrono-tz)
-- [Documentation](https://tuuru-chrono-tz.dev)
-- [Research](../ideas/KEM-TIME-PAIN-POINTS-ANALYSIS.md)
-
----
-
-**Built with evidence. Shipped with love. Time zones for the whole world.** 🌍⏰
+- **Yakutian culture** for the name
