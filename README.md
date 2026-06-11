@@ -21,8 +21,10 @@ Built to solve **298 real user pain points** collected from date-fns, moment.js,
 | Mutable API | #1 reason moment.js was deprecated | Every method returns a new instance |
 | Broken duration formatting | luxon truncates 26h to 02h | Cascading tokens: 26h as `HH:mm` → `26:00` |
 | Lenient parsing | Security issue | Strict by default — impossible dates throw |
+| No global locale | 89 👍 on date-fns | `setDefaultLocale()` + tree-shakeable locale objects |
 | Poor TypeScript | Retrofitted types | TypeScript-first, literal types for timezones |
 | Confusing UTC | 116 👍 | Explicit `toUTC()` / `toLocal()` / offsets in ISO output |
+| Bundle size | date-fns grew to 21MB | Core is **10.7KB gzipped**, enforced in CI |
 
 ---
 
@@ -68,6 +70,9 @@ now.isSame(tomorrow, 'month'); // unit-based, timezone-aware
 const nyc = tokyo.setTimezone('America/New_York');
 const utc = tokyo.toUTC();
 
+// Keep the wall clock instead (moment's tz(zone, true))
+const nineAmTokyo = nyc.setTimezone('Asia/Tokyo', { keepLocalTime: true });
+
 // Getters are timezone-aware; month is 1-12, weekday 1-7 (Monday=1)
 tokyo.hour;    // 19
 tokyo.offset;  // 540 (east-positive minutes)
@@ -108,6 +113,30 @@ posted.fromNow();     // "5 minutes ago" / "in 2 hours"
 posted.toRelative();  // "today", "yesterday", "last Tuesday"
 ```
 
+### Locales
+
+Locales are plain objects (like date-fns), so bundlers drop every locale you
+don't import. English is built in; `de` and `fr` ship with the package.
+
+```typescript
+import { DateTime, Duration, setDefaultLocale, de, fr } from '@yedoma-labs/tuuru-chrono-tz';
+
+// Global default
+DateTime.setDefaultLocale(fr);          // or setDefaultLocale(fr)
+DateTime.now().format('MMMM');          // "juin"
+Duration.fromObject({ hours: 1 }).humanize(); // "1 heure"
+
+// Per instance (immutable)
+dt.setLocale(de).format('dddd, MMMM D'); // "Sonntag, Juni 9"
+
+// Per call
+dt.format('MMMM', { locale: de });       // "Juni"
+dt.fromNow({ locale: fr });              // "il y a 5 minutes"
+dt.toRelative({ locale: de });           // "gestern"
+```
+
+Custom locales are just objects implementing the exported `Locale` interface.
+
 ### Format Tokens
 
 `YYYY` `YY` year · `MMMM` `MMM` `MM` `M` month · `DD` `D` day · `dddd` `ddd` weekday ·
@@ -127,17 +156,20 @@ CI runs Node 18/20/22/24 on Linux plus Node 22 on macOS and Windows.
 | DateTime (parse, format, arithmetic, zones) | ✅ |
 | Duration (fromISO, humanize, cascading format) | ✅ |
 | Timezone utilities (search, canonical links, DST) | ✅ |
+| Locales (global, per-instance, tree-shakeable) | ✅ en, de, fr |
 | IANA data pipeline (2026b, 568 zones, 256 links) | ✅ |
 | ESM + CJS dual build | ✅ |
+| Bundle size (10.7KB gzipped core, CI-enforced < 20KB) | ✅ |
 
 **Roadmap to v1.0**: native IANA-rule offset math (current math uses cached
-`Intl.DateTimeFormat` — accurate, but rule-based math will be faster), locale
-support for month/weekday names, bundle-size pass (< 20KB gzipped target).
+`Intl.DateTimeFormat` — accurate, but rule-based math will be faster), more
+locales, performance benchmarks, optional LocalDate/LocalTime types, CDN build.
 
 **Design notes**:
 - All timezone offsets are east-positive (Tokyo `+540`, New York `-240` in DST), matching ISO 8601.
-- Wall-clock resolution uses the standard two-pass guess: DST gaps shift forward, overlaps pick the earlier instant.
+- DST gaps shift forward: `2024-03-10 02:30` doesn't exist in New York, so it resolves to `03:30 EDT`. DST overlaps pick the earlier instant: `2024-11-03 01:30` resolves to the EDT occurrence. Both behaviors are tested.
 - `Duration` months/years use fixed 30/365-day approximations; use `DateTime.add()` for calendar-accurate month math.
+- **Regex safety**: parsing does use regular expressions, but every pattern is anchored and linear — no nested quantifiers, no backtracking blowup, so no ReDoS surface (the moment.js #4163 class of bug). `fromFormat` escapes all literal text before it reaches a `RegExp`, so user-supplied format strings cannot inject patterns.
 
 ---
 
@@ -161,6 +193,8 @@ src/
 ├── duration.ts       # Duration class
 ├── timezone.ts       # Timezone utilities
 ├── internal.ts       # Shared timezone math (Intl-backed)
+├── locale.ts         # Locale interface + built-in English
+├── locales/          # Additional locales (de, fr) — tree-shakeable
 ├── types.ts          # Public types
 ├── index.ts          # Entry point
 └── tzdata/           # Generated from IANA (do not edit)
@@ -170,8 +204,9 @@ src/
     └── data.ts       # Types + getTimezoneData()
 scripts/
 ├── download-iana.js  # Fetch tzdata release from iana.org
-└── parse-iana.js     # Generate src/tzdata/ modules
-test/                 # node:test suite (143 tests)
+├── parse-iana.js     # Generate src/tzdata/ modules
+└── check-size.js     # CI bundle-size guard (pnpm size)
+test/                 # node:test suite (170 tests)
 ```
 
 ### Updating IANA Timezone Data
@@ -193,6 +228,61 @@ and extracts with `tar` via `execFileSync` (no shell). Current data version:
 - **`tar: command not found` (Windows)** — install Git Bash or WSL, or extract `data/tzdata.tar.gz` manually.
 - **HTTP 404 on download** — version doesn't exist; check https://data.iana.org/time-zones/releases/ or use `pnpm download-iana` for latest.
 - **`require()` of the package fails** — rebuild; `pnpm build` writes the `dist/cjs/package.json` type marker the CJS build needs.
+
+---
+
+## Migrating
+
+### From moment.js
+
+```typescript
+// Before
+const m = moment.tz('2024-06-09', 'America/New_York');
+m.add(1, 'day');                       // mutates!
+m.format('YYYY-MM-DD');
+m.fromNow();
+moment.duration(150, 'minutes').humanize();
+
+// After
+const dt = DateTime.fromISO('2024-06-09', { timezone: 'America/New_York' });
+const tomorrow = dt.add({ days: 1 });  // immutable
+dt.format('YYYY-MM-DD');               // same tokens
+dt.fromNow();
+Duration.fromObject({ minutes: 150 }).humanize();
+```
+
+### From date-fns (+ date-fns-tz)
+
+```typescript
+// Before
+import { format, addDays } from 'date-fns';
+import { utcToZonedTime } from 'date-fns-tz';
+const zoned = utcToZonedTime(new Date('2024-06-09T10:30:00Z'), 'America/New_York');
+format(addDays(zoned, 1), 'yyyy-MM-dd HH:mm:ss');
+
+// After — timezones built in, no second package
+DateTime.fromISO('2024-06-09T10:30:00Z')
+  .setTimezone('America/New_York')
+  .add({ days: 1 })
+  .format('YYYY-MM-DD HH:mm:ss');
+```
+
+### From luxon
+
+```typescript
+// Before
+const dt = LuxonDateTime.fromISO('2024-06-09', { zone: 'America/New_York' });
+dt.plus({ days: 1 }).toFormat('yyyy-MM-dd');
+dur.toHuman(); // broken output (luxon #1134)
+
+// After
+const dt = DateTime.fromISO('2024-06-09', { timezone: 'America/New_York' });
+dt.add({ days: 1 }).format('YYYY-MM-DD');
+dur.humanize(); // "2 hours, 30 minutes"
+```
+
+Token differences: this library uses moment-style tokens (`YYYY`, `DD`, `HH`)
+— date-fns/luxon users translate `yyyy → YYYY`, `dd → DD`.
 
 ---
 
