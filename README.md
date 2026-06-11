@@ -163,7 +163,53 @@ CI runs Node 18/20/22/24 on Linux plus Node 22 on macOS and Windows.
 
 **Roadmap to v1.0**: native IANA-rule offset math (current math uses cached
 `Intl.DateTimeFormat` — accurate, but rule-based math will be faster), more
-locales, performance benchmarks, optional LocalDate/LocalTime types, CDN build.
+locales, optional LocalDate/LocalTime types, CDN build.
+
+### Performance
+
+`pnpm bench` (Node 24, x86-64; median of 5 timed batches). Pure-JS operations
+are fast; anything that reads a wall clock in a timezone goes through
+`Intl.DateTimeFormat.formatToParts`, which dominates those paths.
+
+| Operation | ops/sec | ns/op |
+|-----------|--------:|------:|
+| `diff` | 69M | 15 |
+| `Timezone.isValid` | 64M | 15 |
+| `Timezone.getCanonical` | 15M | 66 |
+| `fromObject` (UTC) | 4.1M | 244 |
+| `fromNow` | 3.8M | 261 |
+| `Duration.humanize` | 1.1M | 940 |
+| `Duration.format` | 870K | 1153 |
+| `fromISO` (UTC) | 990K | 1010 |
+| `fromFormat` | 233K | 4295 |
+| `get year` / `get offset` (zoned) | ~130K | ~7700 |
+| `add hours` (UTC) | 126K | 7916 |
+| `format` (UTC) | 87K | 11552 |
+| `format` (zoned, names) | 54K | 18640 |
+| `startOf day` (zoned) | 42K | 24055 |
+| `add days` (zoned, DST-safe) | 39K | 25749 |
+
+The ~130K-ops/sec ceiling on zoned getters is one `formatToParts` call each;
+this is the motivation for the roadmap's native rule-based offset math. Wins
+already taken: `Intl.DateTimeFormat` instances are cached per timezone, and
+`format()` derives the weekday from the wall clock it already read instead of
+making a second `Intl` call (2.5× faster).
+
+### Security
+
+No runtime dependencies, so no supply-chain surface. The parsing layer was
+fuzzed with adversarial input (`scripts`-level pentest):
+
+- **No ReDoS** — every regex is anchored and linear; 100K-character inputs to
+  `fromISO`/`fromFormat`/`Duration.fromISO` reject in < 2ms.
+- **No format-string injection** — `fromFormat` escapes all literal text before
+  it reaches a `RegExp`; regex metacharacters in a pattern are matched literally.
+- **No prototype pollution** — timezone lookups use a `Set` and `Object.hasOwn`;
+  `__proto__` / `constructor` as a zone name are rejected, and parse-value maps
+  use `Object.create(null)`.
+- **Strict numeric handling** — non-finite (`Infinity`/`NaN`) arithmetic
+  components throw a clear error instead of producing an instance that fails
+  later; `fromMilliseconds(NaN)` is detectable via `isValid()`.
 
 **Design notes**:
 - All timezone offsets are east-positive (Tokyo `+540`, New York `-240` in DST), matching ISO 8601.
@@ -205,8 +251,9 @@ src/
 scripts/
 ├── download-iana.js  # Fetch tzdata release from iana.org
 ├── parse-iana.js     # Generate src/tzdata/ modules
-└── check-size.js     # CI bundle-size guard (pnpm size)
-test/                 # node:test suite (170 tests)
+├── check-size.js     # CI bundle-size guard (pnpm size)
+└── benchmark.js      # Performance benchmark (pnpm bench)
+test/                 # node:test suite (190 tests, incl. security.test.js)
 ```
 
 ### Updating IANA Timezone Data
