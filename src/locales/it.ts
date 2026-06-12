@@ -39,8 +39,9 @@ export const it: Locale = {
     today: 'oggi',
     tomorrow: 'domani',
     yesterday: 'ieri',
-    nextWeek: '{0} prossimo',
-    lastWeek: '{0} scorso'
+    // domenica (index 7) is feminine; weekdays 1-6 are masculine
+    nextWeek: (wd, i) => `${wd} ${i === 7 ? 'prossima' : 'prossimo'}`,
+    lastWeek: (wd, i) => `${wd} ${i === 7 ? 'scorsa' : 'scorso'}`
   },
   duration: {
     units: {

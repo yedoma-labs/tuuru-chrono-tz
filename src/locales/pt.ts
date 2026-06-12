@@ -42,8 +42,9 @@ export const pt: Locale = {
     today: 'hoje',
     tomorrow: 'amanhã',
     yesterday: 'ontem',
-    nextWeek: 'próxima {0}',
-    lastWeek: '{0} passada'
+    // segunda..sexta-feira (1-5) are feminine; sábado/domingo (6-7) masculine
+    nextWeek: (wd, i) => `${i <= 5 ? 'próxima' : 'próximo'} ${wd}`,
+    lastWeek: (wd, i) => `${wd} ${i <= 5 ? 'passada' : 'passado'}`
   },
   duration: {
     units: {

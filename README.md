@@ -145,12 +145,13 @@ dt.fromNow({ locale: ru });             // "5 минут назад"
 dt.toRelative({ locale: ja });          // "昨日"
 ```
 
-Plural handling is correct, not just a singular/plural split: Russian selects
-its three forms (`1 минуту` / `2 минуты` / `5 минут`) through a CLDR `plural`
-function, and languages with no inflection (Chinese, Japanese) use single-form
-units and drop the number/unit space (`2小时30分钟`). Custom locales are just
-objects implementing the exported `Locale` interface — provide a `plural(n)`
-selector and multi-form arrays for any language the built-ins don't cover.
+Grammar is handled properly, not just a singular/plural split: Russian selects
+its three plural forms (`1 минуту` / `2 минуты` / `5 минут`) through a CLDR
+`plural` function; CJK languages use single-form units and drop the number/unit
+space (`2小时30分钟`); and `toRelative` week phrases agree in gender and case
+(`в следующую среду`, `domenica prossima`, `próximo domingo`). Custom locales are
+plain objects implementing the exported `Locale` interface — supply a `plural(n)`
+selector, multi-form arrays, and function-form week phrases as needed.
 
 ### Format Tokens
 
@@ -173,7 +174,7 @@ const data = getTimezoneData(); // { version, zones, rules, links, metadata }
 
 ## Status
 
-Core is complete and covered by 237 automated tests (parsing rejection tables, DST
+Core is complete and covered by 243 automated tests (parsing rejection tables, DST
 spring-forward/fall-back arithmetic, timezone-aware bucketing, locale plurals,
 dual-package smoke test). CI runs Node 18/20/22/24 on Linux plus Node 22 on
 macOS and Windows.
@@ -287,7 +288,7 @@ scripts/
 ├── check-size.js     # CI bundle-size guard (pnpm size)
 ├── benchmark.js      # Performance benchmark (pnpm bench)
 src/locales/          # de fr es pt it ru zh ja id hi bn (tree-shakeable)
-test/                 # node:test suite (237 tests)
+test/                 # node:test suite (243 tests)
 ```
 
 ### Updating IANA Timezone Data

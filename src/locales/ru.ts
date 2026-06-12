@@ -22,6 +22,21 @@ const shortUnits = {
   second: 'с', minute: 'мин', hour: 'ч', day: 'д', month: 'мес', year: 'г'
 } as const;
 
+// Weekday data for calendar phrases, Monday-first (index 0..6).
+// Accusative case follows "в следующий/прошлый ...".
+const RU_ACCUSATIVE = [
+  'понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу', 'воскресенье'
+];
+// Adjective agreeing with each weekday's gender (м / ж / с).
+const RU_NEXT = [
+  'в следующий', 'в следующий', 'в следующую', 'в следующий',
+  'в следующую', 'в следующую', 'в следующее'
+];
+const RU_LAST = [
+  'в прошлый', 'в прошлый', 'в прошлую', 'в прошлый',
+  'в прошлую', 'в прошлую', 'в прошлое'
+];
+
 export const ru: Locale = {
   name: 'ru',
   months: [
@@ -58,8 +73,11 @@ export const ru: Locale = {
     today: 'сегодня',
     tomorrow: 'завтра',
     yesterday: 'вчера',
-    nextWeek: 'в следующий {0}',
-    lastWeek: 'в прошлый {0}'
+    // "в следующий/прошлый <accusative weekday>" — the adjective agrees with
+    // weekday gender (masc / fem / neuter) and the weekday takes the
+    // accusative case (среда → среду, пятница → пятницу, суббота → субботу).
+    nextWeek: (_wd, i) => `${RU_NEXT[i - 1]} ${RU_ACCUSATIVE[i - 1]}`,
+    lastWeek: (_wd, i) => `${RU_LAST[i - 1]} ${RU_ACCUSATIVE[i - 1]}`
   },
   duration: {
     units,

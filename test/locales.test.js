@@ -37,11 +37,19 @@ describe('locale structural completeness', () => {
       assert.ok(loc.relativeTime.future.includes('{0}'));
       assert.ok(loc.relativeTime.past.includes('{0}'));
 
-      for (const key of ['today', 'tomorrow', 'yesterday', 'nextWeek', 'lastWeek']) {
+      for (const key of ['today', 'tomorrow', 'yesterday']) {
         assert.equal(typeof loc.calendar[key], 'string');
       }
-      assert.ok(loc.calendar.nextWeek.includes('{0}'));
-      assert.ok(loc.calendar.lastWeek.includes('{0}'));
+      // nextWeek/lastWeek are a '{0}' template OR an inflecting function
+      for (const key of ['nextWeek', 'lastWeek']) {
+        const v = loc.calendar[key];
+        if (typeof v === 'string') {
+          assert.ok(v.includes('{0}'), `${name}.calendar.${key} template`);
+        } else {
+          assert.equal(typeof v, 'function', `${name}.calendar.${key}`);
+          assert.equal(typeof v(loc.weekdays[0], 1), 'string');
+        }
+      }
 
       assert.equal(typeof loc.duration.listSeparator, 'string');
       assert.equal(typeof loc.duration.zero, 'string');
@@ -134,6 +142,52 @@ describe('Russian three-form plurals', () => {
     assert.equal(Duration.fromObject({ hours: 2 }).humanize({ locale: ru }), '2 часа');
     assert.equal(Duration.fromObject({ hours: 5 }).humanize({ locale: ru }), '5 часов');
     assert.equal(Duration.fromObject({ hours: 2, minutes: 30 }).humanize({ locale: ru }), '2 часа, 30 минут');
+  });
+});
+
+describe('calendar week phrases agree in gender/case', () => {
+  // Resolve a locale's next/last-week phrase for a given ISO weekday
+  // (1 = Monday .. 7 = Sunday), mirroring DateTime.toRelative. Deterministic:
+  // no dependency on the current date.
+  function phrase(loc, key, weekdayIndex) {
+    const name = loc.weekdays[weekdayIndex - 1];
+    const v = loc.calendar[key];
+    return typeof v === 'function' ? v(name, weekdayIndex) : v.replace('{0}', name);
+  }
+
+  it('Russian inflects adjective gender and accusative case', () => {
+    assert.equal(phrase(ru, 'nextWeek', 3), 'в следующую среду');      // Wed (fem)
+    assert.equal(phrase(ru, 'lastWeek', 7), 'в прошлое воскресенье');  // Sun (neuter)
+    assert.equal(phrase(ru, 'lastWeek', 6), 'в прошлую субботу');      // Sat (fem, acc)
+    assert.equal(phrase(ru, 'nextWeek', 1), 'в следующий понедельник');// Mon (masc)
+    assert.equal(phrase(ru, 'nextWeek', 5), 'в следующую пятницу');    // Fri (fem, acc)
+  });
+
+  it('Italian agrees the adjective with domenica (feminine)', () => {
+    assert.equal(phrase(itLocale, 'nextWeek', 7), 'domenica prossima');
+    assert.equal(phrase(itLocale, 'nextWeek', 1), 'lunedì prossimo');
+    assert.equal(phrase(itLocale, 'lastWeek', 7), 'domenica scorsa');
+  });
+
+  it('Portuguese agrees with -feira (feminine) vs sábado/domingo (masculine)', () => {
+    assert.equal(phrase(pt, 'nextWeek', 3), 'próxima quarta-feira');
+    assert.equal(phrase(pt, 'nextWeek', 7), 'próximo domingo');
+    assert.equal(phrase(pt, 'lastWeek', 6), 'sábado passado');
+  });
+
+  it('uniform-gender locales (es/de/fr) stay correct as templates', () => {
+    assert.equal(phrase(es, 'nextWeek', 6), 'el próximo sábado');
+    assert.equal(phrase(de, 'nextWeek', 1), 'nächsten Montag');
+    assert.equal(phrase(fr, 'nextWeek', 7), 'dimanche prochain');
+  });
+
+  it('toRelative actually uses the inflected phrase near now', () => {
+    // Find a weekday 2-6 days ahead and confirm the rendered phrase matches
+    // the locale function output for that weekday.
+    const now = DateTime.now();
+    const t = now.add({ days: 3 });
+    assert.equal(t.toRelative({ locale: ru }), phrase(ru, 'nextWeek', t.weekday));
+    assert.equal(t.toRelative({ locale: itLocale }), phrase(itLocale, 'nextWeek', t.weekday));
   });
 });
 

@@ -14,7 +14,7 @@ import type {
   TimeUnit
 } from './types.js';
 import { Duration } from './duration.js';
-import { getDefaultLocale, setDefaultLocale } from './locale.js';
+import { getDefaultLocale, setDefaultLocale, weekPhrase } from './locale.js';
 import type { Locale } from './locale.js';
 import {
   getWallClock,
@@ -922,8 +922,8 @@ export class DateTime {
     if (dayDiff === -1) return locale.calendar.yesterday;
 
     const weekdayName = locale.weekdays[this.weekday - 1]!;
-    if (dayDiff > 1 && dayDiff < 7) return locale.calendar.nextWeek.replace('{0}', weekdayName);
-    if (dayDiff < -1 && dayDiff > -7) return locale.calendar.lastWeek.replace('{0}', weekdayName);
+    if (dayDiff > 1 && dayDiff < 7) return weekPhrase(locale.calendar.nextWeek, weekdayName, this.weekday);
+    if (dayDiff < -1 && dayDiff > -7) return weekPhrase(locale.calendar.lastWeek, weekdayName, this.weekday);
 
     return this.format('YYYY-MM-DD');
   }

@@ -19,11 +19,19 @@ describe('package subpath exports', () => {
     assert.equal(mod.getTimezoneData().links['US/Eastern'], 'America/New_York');
   });
 
-  it('locale subpaths resolve', async () => {
-    const { de } = await import('../dist/esm/locales/de.js');
-    const { fr } = await import('../dist/esm/locales/fr.js');
-    assert.equal(de.name, 'de');
-    assert.equal(fr.name, 'fr');
+  it('every locale subpath resolves and is self-named (ESM)', async () => {
+    const names = ['de', 'fr', 'es', 'pt', 'it', 'ru', 'zh', 'ja', 'id', 'hi', 'bn'];
+    for (const name of names) {
+      const mod = await import(`../dist/esm/locales/${name}.js`);
+      assert.equal(mod[name].name, name, `locales/${name}`);
+    }
+  });
+
+  it('locale subpaths resolve under CJS', () => {
+    const { ru } = require('../dist/cjs/locales/ru.js');
+    const { zh } = require('../dist/cjs/locales/zh.js');
+    assert.equal(ru.name, 'ru');
+    assert.equal(zh.name, 'zh');
   });
 });
 

@@ -61,10 +61,15 @@ export interface Locale {
     today: string;
     tomorrow: string;
     yesterday: string;
-    /** Template for 2-6 days ahead, '{0}' is the weekday name */
-    nextWeek: string;
-    /** Template for 2-6 days back */
-    lastWeek: string;
+    /**
+     * Phrase for 2-6 days ahead. A string template uses '{0}' for the
+     * weekday name; a function receives the nominative weekday name and its
+     * ISO index (1 = Monday .. 7 = Sunday) so locales that inflect for
+     * grammatical gender or case can agree (e.g. Russian, Italian).
+     */
+    nextWeek: string | ((weekday: string, weekdayIndex: number) => string);
+    /** Phrase for 2-6 days back (same shape as nextWeek) */
+    lastWeek: string | ((weekday: string, weekdayIndex: number) => string);
   };
 
   duration: {
@@ -89,6 +94,20 @@ export interface Locale {
 export function pickForm(forms: readonly string[], n: number, locale: Locale): string {
   const idx = locale.plural ? locale.plural(n) : (n === 1 ? 0 : 1);
   return forms[Math.min(idx, forms.length - 1)] ?? forms[0]!;
+}
+
+/**
+ * Resolve a calendar week phrase (nextWeek/lastWeek), which may be either a
+ * '{0}' template string or a function that inflects for the given weekday.
+ */
+export function weekPhrase(
+  phrase: string | ((weekday: string, weekdayIndex: number) => string),
+  weekday: string,
+  weekdayIndex: number
+): string {
+  return typeof phrase === 'function'
+    ? phrase(weekday, weekdayIndex)
+    : phrase.replace('{0}', weekday);
 }
 
 /**
