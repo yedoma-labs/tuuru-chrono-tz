@@ -126,9 +126,9 @@ posted.toRelative();  // "today", "yesterday", "last Tuesday"
 ### Locales
 
 Locales are plain objects (like date-fns), so bundlers drop every locale you
-don't import. English is built in. 21 more ship with the package, ordered
-roughly by number of speakers: `zh` `hi` `es` `ar` `bn` `pt` `ru` `ur` `id`
-`de` `ja` `tr` `ko` `fr` `vi` `it` `fa` `pl` `uk` `nl` `th`.
+don't import. English is built in. 30 more ship with the package:
+`zh` `hi` `es` `ar` `bn` `pt` `ru` `ur` `id` `de` `ja` `tr` `ko` `fr` `vi`
+`it` `fa` `pl` `uk` `ro` `nl` `el` `hu` `sv` `da` `fi` `nb` `bg` `is` `th`.
 
 ```typescript
 import { DateTime, Duration, setDefaultLocale, es, ru, ja } from '@yedoma-labs/tuuru-chrono-tz';
@@ -153,13 +153,20 @@ Grammar is handled properly, not just a singular/plural split:
 - **Numeral agreement** — Arabic drops the numeral entirely for one and two
   (`منذ دقيقة`, `منذ دقيقتين`), shows numeral + plural for 3–10 (`منذ 5 دقائق`)
   and numeral + singular for 11+ (`منذ 11 دقيقة`), via a `formatCount` hook.
+  Romanian inserts "de" from 20 (`20 de minute`).
+- **Case by direction** — Finnish and Icelandic inflect the unit's case
+  depending on past vs future: Finnish `5 minuutin päästä` (genitive) vs
+  `5 minuuttia sitten` (partitive); Icelandic `eftir 5 mínútur` (accusative) vs
+  `fyrir 5 mínútum síðan` (dative). `formatCount` receives a `future` flag.
 - **No-space scripts** — CJK and Korean drop the number/unit gap (`2小时30分钟`).
 - **Gendered calendar** — `toRelative` week phrases agree in gender and case
   (`в следующую среду`, `domenica prossima`, `próximo domingo`).
 
 Custom locales are plain objects implementing the exported `Locale` interface —
 supply a `plural(n)` selector, `formatCount`, multi-form arrays, and
-function-form week phrases as needed.
+function-form week phrases as needed. (West/South Slavic — Czech, Slovak,
+Croatian, Serbian — aren't bundled yet; they need direction-dependent case
+forms, the same `formatCount(future)` mechanism Finnish and Icelandic use.)
 
 ### Format Tokens
 
@@ -223,7 +230,7 @@ const data = getTimezoneData(); // { version, zones, rules, links, metadata }
 
 ## Status
 
-Core is complete and covered by 300 automated tests (parsing rejection tables, DST
+Core is complete and covered by 324 automated tests (parsing rejection tables, DST
 spring-forward/fall-back arithmetic, timezone-aware bucketing, locale plurals,
 wall-clock cache vs. an Intl oracle, dual-package smoke test). CI runs Node
 18/20/22/24 on Linux plus Node 22 on macOS and Windows.
@@ -237,14 +244,14 @@ wall-clock cache vs. an Intl oracle, dual-package smoke test). CI runs Node
 | Comparison (isBefore/After, isSameOrBefore/After, isBetween, min/max) | ✅ |
 | Duration (fromISO, humanize, cascading format) | ✅ |
 | Timezone utilities (search, canonical links, DST) | ✅ |
-| Locales (global, per-instance, tree-shakeable, CLDR plurals) | ✅ 22 languages |
+| Locales (global, per-instance, tree-shakeable, CLDR plurals) | ✅ 31 languages |
 | IANA data pipeline (2026b, 568 zones, 256 links) | ✅ |
 | ESM + CJS dual build + CDN bundle | ✅ |
 | Bundle size (11KB gzipped core, CI-enforced < 20KB + tree-shaking) | ✅ |
 
 Everything in the implementation guide is shipped: built-in IANA timezones,
 immutable API, strict parsing (ISO + custom formats with month names), duration
-and relative-time formatting, full localization for 22 languages (Arabic numeral
+and relative-time formatting, full localization for 31 languages (Arabic numeral
 agreement, Slavic three-form plurals, gendered calendar phrases), LocalDate /
 LocalTime types, tree-shakeable ESM + CJS + CDN builds, and a memoized
 timezone-math fast path. No outstanding roadmap items.
@@ -353,7 +360,7 @@ scripts/
 ├── check-size.js     # CI bundle-size guard (pnpm size)
 ├── benchmark.js      # Performance benchmark (pnpm bench)
 src/locales/          # de fr es pt it ru zh ja id hi bn ko tr vi pl nl th ar fa ur uk
-test/                 # node:test suite (300 tests)
+test/                 # node:test suite (324 tests)
 ```
 
 ### Updating IANA Timezone Data

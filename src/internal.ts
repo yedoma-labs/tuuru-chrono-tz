@@ -221,7 +221,7 @@ export function humanizeDelta(
       const label = short
         ? `${value}${rt.shortUnits[unit]}`
         : locale.formatCount
-          ? locale.formatCount(value, rt.units[unit], unit)
+          ? locale.formatCount(value, rt.units[unit], unit, future)
           : `${value}${sep}${pickForm(rt.units[unit], value, locale)}`;
       return template.replace('{0}', label);
     }

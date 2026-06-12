@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   DateTime, Duration,
   en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th, ar, fa, ur, uk,
+  da, sv, nb, fi, is, hu, ro, bg, el,
   it as itLocale
 } from '../dist/esm/index.js';
 
@@ -11,6 +12,7 @@ afterEach(() => DateTime.setDefaultLocale(en));
 
 const ALL = {
   en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th, ar, fa, ur, uk,
+  da, sv, nb, fi, is, hu, ro, bg, el,
   it: itLocale
 };
 
@@ -86,13 +88,17 @@ describe('format in each locale', () => {
     es: 'junio', pt: 'junho', it: 'giugno', ru: 'июнь',
     zh: '六月', ja: '6月', id: 'Juni', hi: 'जून', bn: 'জুন',
     ko: '6월', tr: 'Haziran', vi: 'Tháng 6', pl: 'czerwiec', nl: 'juni', th: 'มิถุนายน',
-    ar: 'يونيو', fa: 'ژوئن', ur: 'جون', uk: 'червень'
+    ar: 'يونيو', fa: 'ژوئن', ur: 'جون', uk: 'червень',
+    da: 'juni', sv: 'juni', nb: 'juni', fi: 'kesäkuu', is: 'júní', hu: 'június',
+    ro: 'iunie', bg: 'юни', el: 'Ιούνιος'
   };
   const expectWeekday = {
     es: 'domingo', pt: 'domingo', it: 'domenica', ru: 'воскресенье',
     zh: '星期日', ja: '日曜日', id: 'Minggu', hi: 'रविवार', bn: 'রবিবার',
     ko: '일요일', tr: 'Pazar', vi: 'Chủ Nhật', pl: 'niedziela', nl: 'zondag', th: 'อาทิตย์',
-    ar: 'الأحد', fa: 'یکشنبه', ur: 'اتوار', uk: 'неділя'
+    ar: 'الأحد', fa: 'یکشنبه', ur: 'اتوار', uk: 'неділя',
+    da: 'søndag', sv: 'söndag', nb: 'søndag', fi: 'sunnuntai', is: 'sunnudagur',
+    hu: 'vasárnap', ro: 'duminică', bg: 'неделя', el: 'Κυριακή'
   };
 
   for (const [name, month] of Object.entries(expectMonth)) {
@@ -225,6 +231,59 @@ describe('Ukrainian three-form plurals and gender calendar', () => {
     assert.equal(phrase(1), 'у наступний понеділок'); // masc
     assert.equal(phrase(3), 'у наступну середу');     // fem (accusative)
     assert.equal(phrase(6), 'у наступну суботу');     // fem
+  });
+});
+
+describe('Nordic locales', () => {
+  const ago = (l) => DateTime.fromMilliseconds(Date.now() - 5 * 60000).fromNow({ locale: l });
+  const inFut = (l) => DateTime.fromMilliseconds(Date.now() + 5 * 60000).fromNow({ locale: l });
+
+  it('Danish / Swedish / Norwegian are case-stable both directions', () => {
+    assert.equal(ago(da), '5 minutter siden');
+    assert.equal(inFut(da), 'om 5 minutter');
+    assert.equal(ago(sv), 'för 5 minuter sedan');
+    assert.equal(inFut(sv), 'om 5 minuter');
+    assert.equal(ago(nb), '5 minutter siden');
+    assert.equal(inFut(nb), 'om 5 minutter');
+  });
+
+  it('Finnish inflects case by direction (genitive future, partitive past)', () => {
+    assert.equal(inFut(fi), '5 minuutin päästä');   // genitive
+    assert.equal(ago(fi), '5 minuuttia sitten');    // partitive
+    assert.equal(Duration.fromObject({ hours: 2, minutes: 30 }).humanize({ locale: fi }), '2 tuntia, 30 minuuttia');
+  });
+
+  it('Icelandic inflects case by direction and number', () => {
+    assert.equal(inFut(is), 'eftir 5 mínútur');         // accusative plural
+    assert.equal(ago(is), 'fyrir 5 mínútum síðan');     // dative plural
+    // singular when n%10==1 (but not 11)
+    assert.equal(DateTime.fromMilliseconds(Date.now() + 60000).fromNow({ locale: is }), 'eftir 1 mínútu');
+    assert.equal(DateTime.fromMilliseconds(Date.now() - 60000).fromNow({ locale: is }), 'fyrir 1 mínútu síðan');
+    assert.equal(Duration.fromObject({ hours: 2, minutes: 30 }).humanize({ locale: is }), '2 klukkustundir, 30 mínútur');
+  });
+});
+
+describe('Hungarian / Bulgarian / Greek / Romanian', () => {
+  const ago = (l, n = 5) => DateTime.fromMilliseconds(Date.now() - n * 60000).fromNow({ locale: l });
+
+  it('Hungarian single form', () => {
+    assert.equal(ago(hu), '5 perc ezelőtt');
+    assert.equal(DateTime.fromMilliseconds(Date.now() + 5 * 60000).fromNow({ locale: hu }), '5 perc múlva');
+  });
+
+  it('Bulgarian / Greek binary', () => {
+    assert.equal(ago(bg), 'преди 5 минути');
+    assert.equal(ago(bg, 1), 'преди 1 минута');
+    assert.equal(ago(el), 'πριν από 5 λεπτά');
+    assert.equal(ago(el, 1), 'πριν από 1 λεπτό');
+  });
+
+  it('Romanian three forms with "de" from 20', () => {
+    assert.equal(ago(ro, 1), 'acum 1 minut');     // one
+    assert.equal(ago(ro, 5), 'acum 5 minute');    // few
+    assert.equal(ago(ro, 20), 'acum 20 de minute'); // other
+    assert.equal(Duration.fromObject({ years: 1 }).humanize({ locale: ro }), '1 an');
+    assert.equal(Duration.fromObject({ years: 25 }).humanize({ locale: ro }), '25 de ani');
   });
 });
 

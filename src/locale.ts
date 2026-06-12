@@ -50,9 +50,14 @@ export interface Locale {
    * counts. Arabic, for example, uses the bare singular for one ("دقيقة"), a
    * dual form with no numeral for two ("دقيقتين"), the plural with a numeral
    * for 3-10 ("5 دقائق"), and the singular with a numeral for 11+
-   * ("11 دقيقة"). Receives the count, the unit's form array, and the unit.
+   * ("11 دقيقة").
+   *
+   * `future` is `true` for "in X", `false` for "X ago", and `undefined` for a
+   * direction-less duration (Duration.humanize). Languages that inflect the
+   * unit's case by direction — Finnish ("5 minuutin päästä" vs "5 minuuttia
+   * sitten"), Icelandic — use it.
    */
-  formatCount?(n: number, forms: readonly string[], unit: RelativeUnit): string;
+  formatCount?(n: number, forms: readonly string[], unit: RelativeUnit, future?: boolean): string;
 
   relativeTime: {
     /** Template for future deltas, '{0}' is the unit phrase, e.g. 'in {0}' */

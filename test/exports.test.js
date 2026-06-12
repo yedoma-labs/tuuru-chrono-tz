@@ -21,7 +21,8 @@ describe('package subpath exports', () => {
 
   it('every locale subpath resolves and is self-named (ESM)', async () => {
     const names = ['de', 'fr', 'es', 'pt', 'it', 'ru', 'zh', 'ja', 'id', 'hi', 'bn',
-      'ko', 'tr', 'vi', 'pl', 'nl', 'th', 'ar', 'fa', 'ur', 'uk'];
+      'ko', 'tr', 'vi', 'pl', 'nl', 'th', 'ar', 'fa', 'ur', 'uk',
+      'da', 'sv', 'nb', 'fi', 'is', 'hu', 'ro', 'bg', 'el'];
     for (const name of names) {
       const mod = await import(`../dist/esm/locales/${name}.js`);
       assert.equal(mod[name].name, name, `locales/${name}`);

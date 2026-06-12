@@ -36,6 +36,15 @@ export { ar } from './locales/ar.js';
 export { fa } from './locales/fa.js';
 export { ur } from './locales/ur.js';
 export { uk } from './locales/uk.js';
+export { da } from './locales/da.js';
+export { sv } from './locales/sv.js';
+export { nb } from './locales/nb.js';
+export { fi } from './locales/fi.js';
+export { is } from './locales/is.js';
+export { hu } from './locales/hu.js';
+export { ro } from './locales/ro.js';
+export { bg } from './locales/bg.js';
+export { el } from './locales/el.js';
 export type { Locale, RelativeUnit } from './locale.js';
 
 export type {
