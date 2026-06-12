@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   DateTime, Duration,
   en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th, ar, fa, ur, uk,
-  da, sv, nb, fi, is, hu, ro, bg, el,
+  da, sv, nb, fi, is, hu, ro, bg, el, cs, sk, hr, sr,
   it as itLocale
 } from '../dist/esm/index.js';
 
@@ -12,7 +12,7 @@ afterEach(() => DateTime.setDefaultLocale(en));
 
 const ALL = {
   en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th, ar, fa, ur, uk,
-  da, sv, nb, fi, is, hu, ro, bg, el,
+  da, sv, nb, fi, is, hu, ro, bg, el, cs, sk, hr, sr,
   it: itLocale
 };
 
@@ -90,7 +90,8 @@ describe('format in each locale', () => {
     ko: '6월', tr: 'Haziran', vi: 'Tháng 6', pl: 'czerwiec', nl: 'juni', th: 'มิถุนายน',
     ar: 'يونيو', fa: 'ژوئن', ur: 'جون', uk: 'червень',
     da: 'juni', sv: 'juni', nb: 'juni', fi: 'kesäkuu', is: 'júní', hu: 'június',
-    ro: 'iunie', bg: 'юни', el: 'Ιούνιος'
+    ro: 'iunie', bg: 'юни', el: 'Ιούνιος',
+    cs: 'červen', sk: 'jún', hr: 'lipanj', sr: 'јун'
   };
   const expectWeekday = {
     es: 'domingo', pt: 'domingo', it: 'domenica', ru: 'воскресенье',
@@ -98,7 +99,8 @@ describe('format in each locale', () => {
     ko: '일요일', tr: 'Pazar', vi: 'Chủ Nhật', pl: 'niedziela', nl: 'zondag', th: 'อาทิตย์',
     ar: 'الأحد', fa: 'یکشنبه', ur: 'اتوار', uk: 'неділя',
     da: 'søndag', sv: 'söndag', nb: 'søndag', fi: 'sunnuntai', is: 'sunnudagur',
-    hu: 'vasárnap', ro: 'duminică', bg: 'неделя', el: 'Κυριακή'
+    hu: 'vasárnap', ro: 'duminică', bg: 'неделя', el: 'Κυριακή',
+    cs: 'neděle', sk: 'nedeľa', hr: 'nedjelja', sr: 'недеља'
   };
 
   for (const [name, month] of Object.entries(expectMonth)) {
@@ -284,6 +286,54 @@ describe('Hungarian / Bulgarian / Greek / Romanian', () => {
     assert.equal(ago(ro, 20), 'acum 20 de minute'); // other
     assert.equal(Duration.fromObject({ years: 1 }).humanize({ locale: ro }), '1 an');
     assert.equal(Duration.fromObject({ years: 25 }).humanize({ locale: ro }), '25 de ani');
+  });
+});
+
+describe('West and South Slavic case-by-direction', () => {
+  const ago = (l, n) => DateTime.fromMilliseconds(Date.now() - n * 60000).fromNow({ locale: l });
+  const inFut = (l, n) => DateTime.fromMilliseconds(Date.now() + n * 60000).fromNow({ locale: l });
+
+  it('Czech: accusative future, instrumental past, nominative duration', () => {
+    assert.equal(inFut(cs, 1), 'za 1 minutu');         // acc sg
+    assert.equal(inFut(cs, 5), 'za 5 minut');          // gen pl after 5
+    assert.equal(ago(cs, 1), 'před 1 minutou');        // instr sg
+    assert.equal(ago(cs, 2), 'před 2 minutami');       // instr pl
+    assert.equal(ago(cs, 5), 'před 5 minutami');
+    assert.equal(Duration.fromObject({ hours: 2, minutes: 30 }).humanize({ locale: cs }), '2 hodiny, 30 minut');
+  });
+
+  it('Slovak mirrors Czech with "o" / "pred"', () => {
+    assert.equal(inFut(sk, 1), 'o 1 minútu');
+    assert.equal(inFut(sk, 5), 'o 5 minút');
+    assert.equal(ago(sk, 2), 'pred 2 minútami');
+    assert.equal(ago(sk, 5), 'pred 5 minútami');
+  });
+
+  it('Croatian: accusative future, genitive past', () => {
+    assert.equal(inFut(hr, 1), 'za 1 minutu');   // acc sg
+    assert.equal(inFut(hr, 5), 'za 5 minuta');   // gen pl
+    assert.equal(ago(hr, 1), 'prije 1 minute');  // gen sg
+    assert.equal(ago(hr, 2), 'prije 2 minute');  // few
+    assert.equal(ago(hr, 5), 'prije 5 minuta');
+    assert.equal(Duration.fromObject({ hours: 2, minutes: 30 }).humanize({ locale: hr }), '2 sata, 30 minuta');
+  });
+
+  it('Serbian (Cyrillic): за future, пре past', () => {
+    assert.equal(inFut(sr, 1), 'за 1 минут');
+    assert.equal(inFut(sr, 5), 'за 5 минута');
+    assert.equal(ago(sr, 5), 'пре 5 минута');
+    assert.equal(Duration.fromObject({ hours: 2 }).humanize({ locale: sr }), '2 сата');
+  });
+
+  it('calendar week phrases agree in gender (accusative weekday)', () => {
+    // Wednesday is feminine in all four → accusative + feminine adjective
+    assert.equal(cs.calendar.nextWeek(cs.weekdays[2], 3), 'příští středu');
+    assert.equal(sk.calendar.nextWeek(sk.weekdays[2], 3), 'budúcu stredu');
+    assert.equal(hr.calendar.nextWeek(hr.weekdays[2], 3), 'sljedeću srijedu');
+    assert.equal(sr.calendar.nextWeek(sr.weekdays[2], 3), 'следећу среду');
+    // Monday masculine
+    assert.equal(cs.calendar.nextWeek(cs.weekdays[0], 1), 'příští pondělí');
+    assert.equal(hr.calendar.lastWeek(hr.weekdays[0], 1), 'prošli ponedjeljak');
   });
 });
 

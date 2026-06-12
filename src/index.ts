@@ -45,6 +45,10 @@ export { hu } from './locales/hu.js';
 export { ro } from './locales/ro.js';
 export { bg } from './locales/bg.js';
 export { el } from './locales/el.js';
+export { cs } from './locales/cs.js';
+export { sk } from './locales/sk.js';
+export { hr } from './locales/hr.js';
+export { sr } from './locales/sr.js';
 export type { Locale, RelativeUnit } from './locale.js';
 
 export type {
