@@ -126,8 +126,9 @@ posted.toRelative();  // "today", "yesterday", "last Tuesday"
 ### Locales
 
 Locales are plain objects (like date-fns), so bundlers drop every locale you
-don't import. English is built in. 11 more ship with the package, ordered by
-number of speakers: `zh` `hi` `es` `bn` `pt` `ru` `id` `ja` `de` `fr` `it`.
+don't import. English is built in. 17 more ship with the package, ordered
+roughly by number of speakers: `zh` `hi` `es` `bn` `pt` `ru` `ja` `id` `de`
+`tr` `ko` `fr` `vi` `it` `pl` `nl` `th`.
 
 ```typescript
 import { DateTime, Duration, setDefaultLocale, es, ru, ja } from '@yedoma-labs/tuuru-chrono-tz';
@@ -174,7 +175,7 @@ const data = getTimezoneData(); // { version, zones, rules, links, metadata }
 
 ## Status
 
-Core is complete and covered by 243 automated tests (parsing rejection tables, DST
+Core is complete and covered by 259 automated tests (parsing rejection tables, DST
 spring-forward/fall-back arithmetic, timezone-aware bucketing, locale plurals,
 dual-package smoke test). CI runs Node 18/20/22/24 on Linux plus Node 22 on
 macOS and Windows.
@@ -186,7 +187,7 @@ macOS and Windows.
 | Comparison (isBefore/After, isSameOrBefore/After, isBetween, min/max) | ✅ |
 | Duration (fromISO, humanize, cascading format) | ✅ |
 | Timezone utilities (search, canonical links, DST) | ✅ |
-| Locales (global, per-instance, tree-shakeable, CLDR plurals) | ✅ 12 languages |
+| Locales (global, per-instance, tree-shakeable, CLDR plurals) | ✅ 18 languages |
 | IANA data pipeline (2026b, 568 zones, 256 links) | ✅ |
 | ESM + CJS dual build | ✅ |
 | Bundle size (11KB gzipped core, CI-enforced < 20KB + tree-shaking) | ✅ |
@@ -287,8 +288,8 @@ scripts/
 ├── parse-iana.js     # Generate src/tzdata/ modules
 ├── check-size.js     # CI bundle-size guard (pnpm size)
 ├── benchmark.js      # Performance benchmark (pnpm bench)
-src/locales/          # de fr es pt it ru zh ja id hi bn (tree-shakeable)
-test/                 # node:test suite (243 tests)
+src/locales/          # de fr es pt it ru zh ja id hi bn ko tr vi pl nl th
+test/                 # node:test suite (259 tests)
 ```
 
 ### Updating IANA Timezone Data

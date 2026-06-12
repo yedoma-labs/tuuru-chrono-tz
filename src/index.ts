@@ -23,6 +23,12 @@ export { id } from './locales/id.js';
 export { ja } from './locales/ja.js';
 export { de } from './locales/de.js';
 export { fr } from './locales/fr.js';
+export { ko } from './locales/ko.js';
+export { tr } from './locales/tr.js';
+export { vi } from './locales/vi.js';
+export { pl } from './locales/pl.js';
+export { nl } from './locales/nl.js';
+export { th } from './locales/th.js';
 export { it } from './locales/it.js';
 export type { Locale, RelativeUnit } from './locale.js';
 

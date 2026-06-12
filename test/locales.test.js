@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 
 import {
   DateTime, Duration,
-  en, de, fr, zh, hi, es, bn, pt, ru, id, ja, it as itLocale
+  en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th,
+  it as itLocale
 } from '../dist/esm/index.js';
 
 afterEach(() => DateTime.setDefaultLocale(en));
 
-const ALL = { en, de, fr, zh, hi, es, bn, pt, ru, id, ja, it: itLocale };
+const ALL = { en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th, it: itLocale };
 
 const UNITS = ['second', 'minute', 'hour', 'day', 'month', 'year'];
 
@@ -80,11 +81,13 @@ describe('format in each locale', () => {
 
   const expectMonth = {
     es: 'junio', pt: 'junho', it: 'giugno', ru: 'июнь',
-    zh: '六月', ja: '6月', id: 'Juni', hi: 'जून', bn: 'জুন'
+    zh: '六月', ja: '6月', id: 'Juni', hi: 'जून', bn: 'জুন',
+    ko: '6월', tr: 'Haziran', vi: 'Tháng 6', pl: 'czerwiec', nl: 'juni', th: 'มิถุนายน'
   };
   const expectWeekday = {
     es: 'domingo', pt: 'domingo', it: 'domenica', ru: 'воскресенье',
-    zh: '星期日', ja: '日曜日', id: 'Minggu', hi: 'रविवार', bn: 'রবিবার'
+    zh: '星期日', ja: '日曜日', id: 'Minggu', hi: 'रविवार', bn: 'রবিবার',
+    ko: '일요일', tr: 'Pazar', vi: 'Chủ Nhật', pl: 'niedziela', nl: 'zondag', th: 'อาทิตย์'
   };
 
   for (const [name, month] of Object.entries(expectMonth)) {
@@ -98,6 +101,7 @@ describe('format in each locale', () => {
     const d = Duration.fromObject({ hours: 2, minutes: 30 });
     assert.equal(d.humanize({ locale: zh }), '2小时30分钟');
     assert.equal(d.humanize({ locale: ja }), '2時間30分');
+    assert.equal(d.humanize({ locale: ko }), '2시간 30분'); // no number/unit gap, space between parts
   });
 });
 
@@ -117,9 +121,18 @@ describe('relative time and humanize', () => {
     assert.equal(fiveMinAgo().fromNow({ locale: bn }), '5 মিনিট আগে');
   });
 
-  it('Chinese / Japanese (no space)', () => {
+  it('Chinese / Japanese / Korean (no space)', () => {
     assert.equal(fiveMinAgo().fromNow({ locale: zh }), '5分钟前');
     assert.equal(fiveMinAgo().fromNow({ locale: ja }), '5分前');
+    assert.equal(fiveMinAgo().fromNow({ locale: ko }), '5분 전');
+  });
+
+  it('Korean / Turkish / Vietnamese / Dutch / Thai', () => {
+    assert.equal(fiveMinAgo().fromNow({ locale: tr }), '5 dakika önce');
+    assert.equal(fiveMinAgo().fromNow({ locale: vi }), '5 phút trước');
+    assert.equal(fiveMinAgo().fromNow({ locale: nl }), '5 minuten geleden');
+    assert.equal(fiveMinAgo().fromNow({ locale: th }), '5 นาทีที่แล้ว');
+    assert.equal(Duration.fromObject({ hours: 2, minutes: 30 }).humanize({ locale: tr }), '2 saat, 30 dakika');
   });
 });
 
@@ -142,6 +155,33 @@ describe('Russian three-form plurals', () => {
     assert.equal(Duration.fromObject({ hours: 2 }).humanize({ locale: ru }), '2 часа');
     assert.equal(Duration.fromObject({ hours: 5 }).humanize({ locale: ru }), '5 часов');
     assert.equal(Duration.fromObject({ hours: 2, minutes: 30 }).humanize({ locale: ru }), '2 часа, 30 минут');
+  });
+});
+
+describe('Polish three-form plurals', () => {
+  const minsAgo = (n) => DateTime.fromMilliseconds(Date.now() - n * 60000).fromNow({ locale: pl });
+
+  it('selects one / few / many correctly', () => {
+    assert.equal(minsAgo(1), '1 minutę temu');   // one (accusative)
+    assert.equal(minsAgo(2), '2 minuty temu');   // few
+    assert.equal(minsAgo(5), '5 minut temu');    // many
+    assert.equal(minsAgo(12), '12 minut temu');  // many (12-14 special)
+    assert.equal(minsAgo(22), '22 minuty temu'); // few
+    assert.equal(minsAgo(25), '25 minut temu');  // many
+  });
+
+  it('year forms agree in humanize', () => {
+    assert.equal(Duration.fromObject({ years: 1 }).humanize({ locale: pl }), '1 rok');
+    assert.equal(Duration.fromObject({ years: 2 }).humanize({ locale: pl }), '2 lata');
+    assert.equal(Duration.fromObject({ years: 5 }).humanize({ locale: pl }), '5 lat');
+  });
+
+  it('calendar week phrases agree in gender and case', () => {
+    const phrase = (i) => pl.calendar.nextWeek(pl.weekdays[i - 1], i);
+    assert.equal(phrase(1), 'w przyszły poniedziałek'); // masc
+    assert.equal(phrase(3), 'w przyszłą środę');        // fem (accusative)
+    assert.equal(phrase(6), 'w przyszłą sobotę');       // fem
+    assert.equal(pl.calendar.lastWeek(pl.weekdays[2], 3), 'w zeszłą środę');
   });
 });
 
