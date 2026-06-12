@@ -33,6 +33,7 @@
     "parse-iana": "node scripts/parse-iana.js",
     "build-tzdata": "pnpm download-iana && pnpm parse-iana",
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'}))\"",
+    "prepack": "pnpm clean && pnpm build",
     "pretest": "pnpm build",
     "test": "node --test test/datetime.test.js test/duration.test.js test/timezone.test.js test/locale.test.js test/locales.test.js test/calendar.test.js test/exports.test.js test/security.test.js test/cjs.test.js",
     "size": "node scripts/check-size.js",
@@ -47,7 +48,9 @@
     "typescript": "^5.4.0"
   },
   "files": [
-    "dist",
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/package.json",
     "README.md",
     "LICENSE"
   ],

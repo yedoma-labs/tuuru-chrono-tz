@@ -38,3 +38,6 @@ temp/
 .env
 .env.local
 .env.*.local
+
+# npm pack artifacts
+*.tgz
