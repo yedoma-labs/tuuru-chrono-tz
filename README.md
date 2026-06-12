@@ -168,6 +168,47 @@ function-form week phrases as needed.
 `HH` `H` hour 0-23 · `hh` `h` hour 1-12 · `mm` `m` minute · `ss` `s` second ·
 `SSS` millisecond · `A` `a` AM/PM · `Z` `ZZ` offset · `[text]` escaped literal
 
+Custom-format parsing accepts the same name tokens, in any locale:
+
+```typescript
+DateTime.fromFormat('Jan 5 2024', 'MMM D YYYY');               // month abbreviation
+DateTime.fromFormat('9 Juni 2024', 'D MMMM YYYY', { locale: de }); // localized
+DateTime.fromFormat('Sunday, June 9 2024', 'dddd, MMMM D YYYY');   // weekday consumed
+```
+
+### LocalDate & LocalTime
+
+For a calendar date or a time of day with **no timezone** — birthdays, store
+hours, due dates — where a wall-clock instant would mislead:
+
+```typescript
+import { LocalDate, LocalTime } from '@yedoma-labs/tuuru-chrono-tz';
+
+const d = LocalDate.fromISO('2024-06-09');
+d.weekday;                       // 7 (Sunday)
+d.add({ months: 1 }).toISO();    // "2024-07-09"  (Jan 31 + 1mo clamps to Feb 29)
+d.until(LocalDate.fromISO('2024-06-20')); // 11 days
+d.toDateTime('Asia/Tokyo', { hour: 9 });  // → DateTime at 09:00 Tokyo
+
+const t = LocalTime.fromISO('10:30');
+t.add({ hours: 2, minutes: 15 }).toISO(); // "12:45:00"
+LocalTime.of(23, 30).add({ hours: 1 });   // wraps → 00:30:00
+t.format('h:mm A');                        // "10:30 AM"
+```
+
+### CDN (no build step)
+
+```html
+<script src="https://unpkg.com/@yedoma-labs/tuuru-chrono-tz"></script>
+<script>
+  const { DateTime, LocalDate } = window.tuuru;
+  DateTime.now('Asia/Tokyo').toISO();
+</script>
+```
+
+A minified IIFE (`dist/tuuru.min.js`, ~21KB gzipped) exposing a `tuuru` global,
+with the full API and all locales but without the raw IANA rule tables.
+
 ### Raw IANA data (advanced)
 
 The full zone/rule tables ship behind a subpath so they never enter your
@@ -182,60 +223,74 @@ const data = getTimezoneData(); // { version, zones, rules, links, metadata }
 
 ## Status
 
-Core is complete and covered by 273 automated tests (parsing rejection tables, DST
+Core is complete and covered by 300 automated tests (parsing rejection tables, DST
 spring-forward/fall-back arithmetic, timezone-aware bucketing, locale plurals,
-dual-package smoke test). CI runs Node 18/20/22/24 on Linux plus Node 22 on
-macOS and Windows.
+wall-clock cache vs. an Intl oracle, dual-package smoke test). CI runs Node
+18/20/22/24 on Linux plus Node 22 on macOS and Windows.
 
 | Component | Status |
 |-----------|--------|
 | DateTime (parse, format, arithmetic, zones) | ✅ |
+| Custom-format parsing incl. `MMM`/`MMMM` month names | ✅ |
+| LocalDate / LocalTime (date-only / time-only, no zone) | ✅ |
 | Calendar getters (quarter, dayOfYear, weekOfYear, daysInMonth, isLeapYear) | ✅ |
 | Comparison (isBefore/After, isSameOrBefore/After, isBetween, min/max) | ✅ |
 | Duration (fromISO, humanize, cascading format) | ✅ |
 | Timezone utilities (search, canonical links, DST) | ✅ |
 | Locales (global, per-instance, tree-shakeable, CLDR plurals) | ✅ 22 languages |
 | IANA data pipeline (2026b, 568 zones, 256 links) | ✅ |
-| ESM + CJS dual build | ✅ |
+| ESM + CJS dual build + CDN bundle | ✅ |
 | Bundle size (11KB gzipped core, CI-enforced < 20KB + tree-shaking) | ✅ |
 
-**Roadmap to v1.0**: native IANA-rule offset math (current math uses cached
-`Intl.DateTimeFormat` — accurate, but rule-based math will be faster), optional
-LocalDate/LocalTime plain-types, CDN build, and month-name parsing in
-`fromFormat` (`MMM`/`MMMM` tokens). Everything in the implementation guide's
-"Critical" and "High Priority" tiers is done, including full localization for 22
-languages (Arabic numeral agreement, Slavic three-form plurals, gendered
-calendar phrases).
+Everything in the implementation guide is shipped: built-in IANA timezones,
+immutable API, strict parsing (ISO + custom formats with month names), duration
+and relative-time formatting, full localization for 22 languages (Arabic numeral
+agreement, Slavic three-form plurals, gendered calendar phrases), LocalDate /
+LocalTime types, tree-shakeable ESM + CJS + CDN builds, and a memoized
+timezone-math fast path. No outstanding roadmap items.
 
 ### Performance
 
-`pnpm bench` (Node 24, x86-64; median of 5 timed batches). Pure-JS operations
-are fast; anything that reads a wall clock in a timezone goes through
-`Intl.DateTimeFormat.formatToParts`, which dominates those paths.
+`pnpm bench` (Node 24, x86-64; median of 5 timed batches).
 
 | Operation | ops/sec | ns/op |
 |-----------|--------:|------:|
-| `diff` | 69M | 15 |
-| `Timezone.isValid` | 64M | 15 |
-| `Timezone.getCanonical` | 15M | 66 |
-| `fromObject` (UTC) | 4.1M | 244 |
-| `fromNow` | 3.8M | 261 |
-| `Duration.humanize` | 1.1M | 940 |
-| `Duration.format` | 870K | 1153 |
-| `fromISO` (UTC) | 990K | 1010 |
-| `fromFormat` | 233K | 4295 |
-| `get year` / `get offset` (zoned) | ~130K | ~7700 |
-| `add hours` (UTC) | 126K | 7916 |
-| `format` (UTC) | 87K | 11552 |
-| `format` (zoned, names) | 54K | 18640 |
-| `startOf day` (zoned) | 42K | 24055 |
-| `add days` (zoned, DST-safe) | 39K | 25749 |
+| `Timezone.isValid` | 71M | 14 |
+| `diff` | 65M | 15 |
+| `Timezone.getCanonical` | 15M | 69 |
+| `fromObject` (UTC) | 3.9M | 257 |
+| `fromNow` | 3.4M | 294 |
+| `get year` (zoned) | 3.3M | 305 |
+| `Timezone.getOffset` (zoned) | 2.8M | 363 |
+| `get offset` (zoned) | 2.4M | 410 |
+| `add hours` (UTC) | 1.8M | 560 |
+| `toISO` (UTC) | 1.5M | 657 |
+| `add months` | 1.2M | 869 |
+| `fromISO` (UTC) | 1.1M | 883 |
+| `fromObject` (zoned) | 910K | 1099 |
+| `toISO` (zoned) | 831K | 1203 |
+| `startOf day` (zoned) | 725K | 1380 |
+| `add days` (zoned, DST-safe) | 557K | 1794 |
+| `fromFormat` | 194K | 5143 |
+| `format` (zoned, names) | 179K | 5575 |
 
-The ~130K-ops/sec ceiling on zoned getters is one `formatToParts` call each;
-this is the motivation for the roadmap's native rule-based offset math. Wins
-already taken: `Intl.DateTimeFormat` instances are cached per timezone, and
-`format()` derives the weekday from the wall clock it already read instead of
-making a second `Intl` call (2.5× faster).
+Timezone math goes through `Intl.DateTimeFormat.formatToParts`, which is the
+cost centre. Two optimizations make it cheap:
+
+- **Wall-clock memoization** — results are cached per `(zone, second)`. A
+  single `format()` reads the wall clock and the offset (which derives from it)
+  for the same instant, and each getter re-derives it; the cache makes those
+  redundant `Intl` calls free. This is a pure-function cache — DST transitions,
+  overlaps, and sub-second precision stay exact (verified against `Intl` as an
+  oracle across zones and dates). It lifted zoned getters from ~130K to ~3M
+  ops/sec (≈25×) and zoned `toISO` ≈13×.
+- `format()` derives the weekday from the wall clock it already read instead of
+  making a second `Intl` call.
+
+A from-scratch IANA rule interpreter was considered for the remaining `format`
+cost but rejected: `Intl` is already exact, and re-deriving offsets from raw
+zone/rule tables would trade guaranteed correctness for marginal speed. The
+memoized `Intl` path keeps correctness and gets most of the win.
 
 ### Security
 
@@ -278,6 +333,8 @@ Requires Node >= 18 and pnpm (`corepack enable` activates the pinned version).
 ```
 src/
 ├── datetime.ts       # DateTime class (immutable, timezone-aware)
+├── localdate.ts      # LocalDate (date-only)
+├── localtime.ts      # LocalTime (time-only)
 ├── duration.ts       # Duration class
 ├── timezone.ts       # Timezone utilities
 ├── internal.ts       # Shared timezone math (Intl-backed)
@@ -296,7 +353,7 @@ scripts/
 ├── check-size.js     # CI bundle-size guard (pnpm size)
 ├── benchmark.js      # Performance benchmark (pnpm bench)
 src/locales/          # de fr es pt it ru zh ja id hi bn ko tr vi pl nl th ar fa ur uk
-test/                 # node:test suite (273 tests)
+test/                 # node:test suite (300 tests)
 ```
 
 ### Updating IANA Timezone Data

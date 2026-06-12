@@ -93,7 +93,8 @@ export interface FormatOptions {
  */
 export interface ParseOptions {
   timezone?: string;
-  locale?: string;
+  /** Locale for month/weekday name tokens (MMMM/MMM/dddd/ddd) in fromFormat */
+  locale?: import('./locale.js').Locale;
   strict?: boolean;
 }
 

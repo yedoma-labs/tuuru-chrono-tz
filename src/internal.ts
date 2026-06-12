@@ -58,26 +58,56 @@ export function normalizeZone(tz: string): string {
   return tz;
 }
 
+/**
+ * Memoize wall-clock results, keyed by zone + whole-second timestamp.
+ *
+ * `Intl.DateTimeFormat.formatToParts` is the cost centre: a single
+ * `format()` reads the wall clock and the offset (which derives from the wall
+ * clock) for the same instant, and each getter re-derives it. Memoizing makes
+ * those redundant calls free. Correctness is unaffected — this caches a pure
+ * function of (zone, second). Bounded with simple FIFO eviction.
+ */
+const WALLCLOCK_CACHE_LIMIT = 4096;
+const wallClockCache = new Map<string, WallClock>();
+
 /** Get wall-clock parts for a timestamp in a timezone */
 export function getWallClock(timestamp: number, tz: string): WallClock {
+  const millisecond = ((timestamp % 1000) + 1000) % 1000;
+  const seconds = (timestamp - millisecond) / 1000;
+  const key = `${tz}|${seconds}`;
+
+  const cached = wallClockCache.get(key);
+  if (cached !== undefined) {
+    // Share the cached second-resolution parts; only ms differs within a second
+    return millisecond === cached.millisecond ? cached : { ...cached, millisecond };
+  }
+
   const parts = getFormatter(tz).formatToParts(new Date(timestamp));
   const values: Record<string, number> = Object.create(null);
-
   for (const part of parts) {
     if (part.type !== 'literal') {
       values[part.type] = parseInt(part.value, 10);
     }
   }
 
-  return {
+  const wc: WallClock = {
     year: values['year'] ?? 0,
     month: values['month'] ?? 1,
     day: values['day'] ?? 1,
     hour: values['hour'] ?? 0,
     minute: values['minute'] ?? 0,
     second: values['second'] ?? 0,
-    millisecond: ((timestamp % 1000) + 1000) % 1000
+    millisecond
   };
+
+  if (wallClockCache.size >= WALLCLOCK_CACHE_LIMIT) {
+    // FIFO: drop the oldest entry
+    const oldest = wallClockCache.keys().next().value;
+    if (oldest !== undefined) wallClockCache.delete(oldest);
+  }
+  wallClockCache.set(key, wc);
+
+  return wc;
 }
 
 /**

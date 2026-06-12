@@ -64,7 +64,7 @@ const PARSE_TOKENS: Record<string, { pattern: string; field: string }> = {
   a: { pattern: '(am|pm)', field: 'meridiem' }
 };
 
-const PARSE_TOKEN_REGEX = /\[([^\]]*)\]|YYYY|MM|M|DD|D|HH|H|hh|h|mm|m|ss|s|SSS|A|a/g;
+const PARSE_TOKEN_REGEX = /\[([^\]]*)\]|YYYY|MMMM|MMM|MM|M|DD|D|dddd|ddd|HH|H|hh|h|mm|m|ss|s|SSS|A|a/g;
 
 // ============================================================================
 // DATETIME
@@ -295,45 +295,84 @@ export class DateTime {
       throw new Error('fromFormat expects string input and format');
     }
 
-    // Compile the format pattern into a regex, recording field order
-    const fields: string[] = [];
+    const locale = options?.locale ?? getDefaultLocale();
+
+    // Build a case-insensitive name → number lookup, longest names first so
+    // the alternation prefers "March" over "Mar". Returns the alternation
+    // source and a decoder.
+    const nameToken = (full: readonly string[], short: readonly string[]):
+      { pattern: string; map: Map<string, number> } => {
+      const map = new Map<string, number>();
+      full.forEach((n, i) => map.set(n.toLowerCase(), i + 1));
+      short.forEach((n, i) => map.set(n.toLowerCase(), i + 1));
+      // Longest names first so "March" beats "Mar" in the alternation
+      const sorted = [...new Set([...full, ...short])].sort((a, b) => b.length - a.length);
+      return { pattern: `(${sorted.map(escapeRegExp).join('|')})`, map };
+    };
+
+    // Compile the format pattern into a regex, recording per-capture decoders
+    const fields: Array<{ field: string; decode: (s: string) => number | string }> = [];
+    const seen = new Set<string>();
     let regexSource = '^';
     let lastIndex = 0;
+
+    const addField = (field: string, decode: (s: string) => number | string) => {
+      if (seen.has(field)) {
+        throw new Error(`Duplicate token for "${field}" in format "${format}"`);
+      }
+      seen.add(field);
+      fields.push({ field, decode });
+    };
 
     PARSE_TOKEN_REGEX.lastIndex = 0;
     let tokenMatch: RegExpExecArray | null;
     while ((tokenMatch = PARSE_TOKEN_REGEX.exec(format)) !== null) {
       // Literal text between tokens must match exactly
       regexSource += escapeRegExp(format.slice(lastIndex, tokenMatch.index));
+      const tok = tokenMatch[0];
 
       if (tokenMatch[1] !== undefined) {
         regexSource += escapeRegExp(tokenMatch[1]); // [escaped] literal
-      } else {
-        const token = PARSE_TOKENS[tokenMatch[0]]!;
-        if (fields.includes(token.field)) {
-          throw new Error(`Duplicate token for "${token.field}" in format "${format}"`);
-        }
-        fields.push(token.field);
+      } else if (tok === 'MMMM' || tok === 'MMM') {
+        // Match either full or abbreviated month names (lenient)
+        const nt = nameToken(locale.months, locale.monthsShort);
+        regexSource += nt.pattern;
+        addField('month', (s) => nt.map.get(s.toLowerCase())!);
+      } else if (tok === 'dddd' || tok === 'ddd') {
+        // Weekday names are parsed and validated but do not set the date
+        const nt = nameToken(locale.weekdays, locale.weekdaysShort);
+        regexSource += nt.pattern;
+        addField('weekday', (s) => nt.map.get(s.toLowerCase())!);
+      } else if (tok === 'A' || tok === 'a') {
+        const token = PARSE_TOKENS[tok]!;
         regexSource += token.pattern;
+        addField(token.field, (s) => s.toUpperCase());
+      } else {
+        const token = PARSE_TOKENS[tok]!;
+        regexSource += token.pattern;
+        addField(token.field, (s) => parseInt(s, 10));
       }
       lastIndex = tokenMatch.index + tokenMatch[0].length;
     }
     regexSource += escapeRegExp(format.slice(lastIndex)) + '$';
 
-    const match = new RegExp(regexSource).exec(str);
+    const match = new RegExp(regexSource, 'i').exec(str);
     if (!match) {
       throw new Error(`Input "${str}" does not match format "${format}"`);
     }
 
-    const values: Record<string, string> = Object.create(null);
-    fields.forEach((field, i) => {
-      values[field] = match[i + 1]!;
+    const values: Record<string, number | string> = Object.create(null);
+    fields.forEach(({ field, decode }, i) => {
+      values[field] = decode(match[i + 1]!);
     });
 
-    if (values['hour'] !== undefined && values['hour12'] !== undefined) {
+    const num = (field: string): number | undefined =>
+      values[field] === undefined ? undefined : values[field] as number;
+
+    if (num('hour') !== undefined && num('hour12') !== undefined) {
       throw new Error(`Format "${format}" mixes 24-hour and 12-hour tokens`);
     }
-    if (values['hour12'] !== undefined && values['meridiem'] === undefined) {
+    if (num('hour12') !== undefined && values['meridiem'] === undefined) {
       throw new Error(`Format "${format}" uses 12-hour token without AM/PM token`);
     }
     for (const required of ['year', 'month', 'day']) {
@@ -343,26 +382,26 @@ export class DateTime {
     }
 
     let hour = 0;
-    if (values['hour'] !== undefined) {
-      hour = parseInt(values['hour'], 10);
-    } else if (values['hour12'] !== undefined) {
-      const h12 = parseInt(values['hour12'], 10);
+    if (num('hour') !== undefined) {
+      hour = num('hour')!;
+    } else if (num('hour12') !== undefined) {
+      const h12 = num('hour12')!;
       if (h12 < 1 || h12 > 12) {
         throw new Error(`Invalid 12-hour value ${h12} in "${str}"`);
       }
-      const isPM = values['meridiem']!.toUpperCase() === 'PM';
+      const isPM = values['meridiem'] === 'PM';
       hour = (h12 % 12) + (isPM ? 12 : 0);
     }
 
     return DateTime.fromObject(
       {
-        year: parseInt(values['year']!, 10),
-        month: parseInt(values['month']!, 10),
-        day: parseInt(values['day']!, 10),
+        year: num('year')!,
+        month: num('month')!,
+        day: num('day')!,
         hour,
-        minute: values['minute'] !== undefined ? parseInt(values['minute'], 10) : 0,
-        second: values['second'] !== undefined ? parseInt(values['second'], 10) : 0,
-        millisecond: values['millisecond'] !== undefined ? parseInt(values['millisecond'], 10) : 0
+        minute: num('minute') ?? 0,
+        second: num('second') ?? 0,
+        millisecond: num('millisecond') ?? 0
       },
       options?.timezone !== undefined ? { timezone: options.timezone } : undefined
     );

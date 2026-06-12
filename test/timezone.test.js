@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { Timezone, TIMEZONE_NAMES, TIMEZONE_COUNT, TZDATA_VERSION } from '../dist/esm/index.js';
+import { Timezone, DateTime, TIMEZONE_NAMES, TIMEZONE_COUNT, TZDATA_VERSION } from '../dist/esm/index.js';
 import { getTimezoneData } from '../dist/esm/tzdata/index.js';
 
 describe('getTimezoneData', () => {
@@ -143,5 +143,49 @@ describe('tzdata exports', () => {
   it('TIMEZONE_NAMES is consistent', () => {
     assert.equal(TIMEZONE_NAMES.length, TIMEZONE_COUNT);
     assert.equal(new Set(TIMEZONE_NAMES).size, TIMEZONE_NAMES.length);
+  });
+});
+
+describe('wall-clock cache correctness', () => {
+  // The memoization keyed by (zone, second) must never change results,
+  // including across DST transitions and for sub-second precision.
+  it('repeated and interleaved reads across a DST transition stay exact', () => {
+    const springForward = Date.UTC(2024, 2, 10, 7, 0, 0); // 02:00 EST → 03:00 EDT
+    for (let pass = 0; pass < 3; pass++) {
+      for (let m = -120; m <= 120; m += 5) {
+        const ts = springForward + m * 60000;
+        const dt = DateTime.fromMilliseconds(ts).setTimezone('America/New_York');
+        // Compare against a fresh Intl-derived offset (oracle)
+        const oracleHour = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York', hour: '2-digit', hourCycle: 'h23'
+        }).formatToParts(new Date(ts)).find(p => p.type === 'hour').value;
+        assert.equal(dt.hour, parseInt(oracleHour, 10));
+      }
+    }
+  });
+
+  it('sub-second precision is preserved within a cached second', () => {
+    const base = 1717929000000;
+    for (const ms of [0, 1, 123, 456, 999]) {
+      assert.equal(DateTime.fromMilliseconds(base + ms).setTimezone('Asia/Tokyo').millisecond, ms);
+    }
+  });
+
+  it('offset matches Intl across many zones and dates', () => {
+    const zones = ['America/New_York', 'Asia/Tokyo', 'Australia/Sydney', 'Europe/London', 'Asia/Kolkata', 'Pacific/Chatham'];
+    const dates = [Date.UTC(2024, 0, 15), Date.UTC(2024, 6, 15), Date.UTC(2023, 9, 1)];
+    for (const tz of zones) {
+      for (const ts of dates) {
+        const got = Timezone.getOffset(tz, ts);
+        // derive oracle offset from Intl wall clock
+        const p = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+        }).formatToParts(new Date(ts)).reduce((o, x) => (x.type !== 'literal' && (o[x.type] = +x.value), o), {});
+        const asUTC = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+        const oracle = Math.round((asUTC - ts) / 60000);
+        assert.equal(got, oracle, `${tz} @ ${ts}`);
+      }
+    }
   });
 });

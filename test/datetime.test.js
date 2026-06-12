@@ -71,6 +71,40 @@ describe('DateTime.fromISO', () => {
   });
 });
 
+describe('DateTime.fromFormat month/weekday names', () => {
+  it('parses MMM and MMMM month names', () => {
+    assert.equal(DateTime.fromFormat('Jan 5 2024', 'MMM D YYYY').format('YYYY-MM-DD'), '2024-01-05');
+    assert.equal(DateTime.fromFormat('9 June 2024', 'D MMMM YYYY').format('YYYY-MM-DD'), '2024-06-09');
+  });
+
+  it('is case-insensitive for names', () => {
+    assert.equal(DateTime.fromFormat('5 mar 2024', 'D MMM YYYY').month, 3);
+    assert.equal(DateTime.fromFormat('5 DECEMBER 2024', 'D MMMM YYYY').month, 12);
+  });
+
+  it('parses names in a given locale', async () => {
+    const { de, fr } = await import('../dist/esm/index.js');
+    assert.equal(DateTime.fromFormat('9 Juni 2024', 'D MMMM YYYY', { locale: de }).month, 6);
+    assert.equal(DateTime.fromFormat('9 déc. 2024', 'D MMM YYYY', { locale: fr }).month, 12);
+  });
+
+  it('consumes weekday names without affecting the date', () => {
+    assert.equal(
+      DateTime.fromFormat('Sunday, June 9 2024', 'dddd, MMMM D YYYY').format('YYYY-MM-DD'),
+      '2024-06-09'
+    );
+  });
+
+  it('round-trips format → fromFormat with names', () => {
+    const dt = DateTime.fromISO('2024-03-15');
+    assert.equal(DateTime.fromFormat(dt.format('ddd, MMM D, YYYY'), 'ddd, MMM D, YYYY').format('YYYY-MM-DD'), '2024-03-15');
+  });
+
+  it('rejects an unknown month name', () => {
+    assert.throws(() => DateTime.fromFormat('Foo 5 2024', 'MMM D YYYY'));
+  });
+});
+
 describe('DateTime.fromFormat', () => {
   it('parses standard pattern', () => {
     const dt = DateTime.fromFormat('2024-06-09 10:30', 'YYYY-MM-DD HH:mm');

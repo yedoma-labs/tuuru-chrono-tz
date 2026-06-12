@@ -40,7 +40,7 @@ describe('root barrel surface', () => {
   it('exports the documented public API and nothing data-heavy', async () => {
     const mod = await import('../dist/esm/index.js');
     const expected = [
-      'DateTime', 'Duration', 'Timezone',
+      'DateTime', 'Duration', 'Timezone', 'LocalDate', 'LocalTime',
       'en', 'de', 'fr', 'setDefaultLocale', 'getDefaultLocale',
       'TIMEZONE_NAMES', 'TIMEZONE_COUNT', 'TZDATA_VERSION', 'TIMEZONE_LINKS'
     ];
@@ -51,5 +51,20 @@ describe('root barrel surface', () => {
     // IANA tables out of the default bundle. It lives behind ./tzdata.
     assert.ok(!('getTimezoneData' in mod), 'getTimezoneData leaked into root barrel');
     assert.ok(!('IANA_DATA' in mod), 'IANA_DATA leaked into root barrel');
+  });
+});
+
+describe('CDN bundle', () => {
+  it('exists and exposes the API as an IIFE global', () => {
+    const { readFileSync } = require('node:fs');
+    const code = readFileSync(new URL('../dist/tuuru.min.js', import.meta.url), 'utf8');
+    // Evaluate the IIFE and capture the global it defines
+    const tuuru = new Function(`${code}; return tuuru;`)();
+    assert.equal(typeof tuuru.DateTime, 'function');
+    assert.equal(typeof tuuru.LocalDate, 'function');
+    assert.equal(tuuru.DateTime.fromISO('2024-06-09T10:30:00Z').toISO(), '2024-06-09T10:30:00.000Z');
+    assert.equal(tuuru.LocalDate.fromISO('2024-06-09').format('MMMM D'), 'June 9');
+    // The raw IANA rule tables must stay out of the CDN bundle
+    assert.ok(code.length < 120 * 1024, `CDN bundle too large: ${(code.length / 1024).toFixed(0)}KB`);
   });
 });

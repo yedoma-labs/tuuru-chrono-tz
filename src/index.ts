@@ -9,6 +9,8 @@
 export { DateTime } from './datetime.js';
 export { Duration } from './duration.js';
 export { Timezone } from './timezone.js';
+export { LocalDate } from './localdate.js';
+export { LocalTime } from './localtime.js';
 
 // Locales (tree-shakeable: unused locales are dropped by bundlers)
 // Ordered roughly by number of speakers.

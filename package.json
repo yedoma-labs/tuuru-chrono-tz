@@ -32,10 +32,11 @@
     "download-iana": "node scripts/download-iana.js",
     "parse-iana": "node scripts/parse-iana.js",
     "build-tzdata": "pnpm download-iana && pnpm parse-iana",
-    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'}))\"",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'}))\" && node scripts/build-cdn.js",
+    "build:cdn": "node scripts/build-cdn.js",
     "prepack": "pnpm clean && pnpm build",
     "pretest": "pnpm build",
-    "test": "node --test test/datetime.test.js test/duration.test.js test/timezone.test.js test/locale.test.js test/locales.test.js test/calendar.test.js test/exports.test.js test/security.test.js test/cjs.test.js",
+    "test": "node --test test/datetime.test.js test/duration.test.js test/timezone.test.js test/locale.test.js test/locales.test.js test/calendar.test.js test/local.test.js test/exports.test.js test/security.test.js test/cjs.test.js",
     "size": "node scripts/check-size.js",
     "bench": "node scripts/benchmark.js",
     "lint": "eslint src/**/*.ts",
@@ -57,6 +58,8 @@
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/esm/index.d.ts",
+  "unpkg": "./dist/tuuru.min.js",
+  "jsdelivr": "./dist/tuuru.min.js",
   "exports": {
     ".": {
       "import": {
