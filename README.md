@@ -126,26 +126,31 @@ posted.toRelative();  // "today", "yesterday", "last Tuesday"
 ### Locales
 
 Locales are plain objects (like date-fns), so bundlers drop every locale you
-don't import. English is built in; `de` and `fr` ship with the package.
+don't import. English is built in. 11 more ship with the package, ordered by
+number of speakers: `zh` `hi` `es` `bn` `pt` `ru` `id` `ja` `de` `fr` `it`.
 
 ```typescript
-import { DateTime, Duration, setDefaultLocale, de, fr } from '@yedoma-labs/tuuru-chrono-tz';
+import { DateTime, Duration, setDefaultLocale, es, ru, ja } from '@yedoma-labs/tuuru-chrono-tz';
 
 // Global default
-DateTime.setDefaultLocale(fr);          // or setDefaultLocale(fr)
-DateTime.now().format('MMMM');          // "juin"
-Duration.fromObject({ hours: 1 }).humanize(); // "1 heure"
+DateTime.setDefaultLocale(es);          // or setDefaultLocale(es)
+DateTime.now().format('MMMM');          // "junio"
+Duration.fromObject({ hours: 1 }).humanize(); // "1 hora"
 
 // Per instance (immutable)
-dt.setLocale(de).format('dddd, MMMM D'); // "Sonntag, Juni 9"
+dt.setLocale(ja).format('MMMM dddd');   // "6月 日曜日"
 
 // Per call
-dt.format('MMMM', { locale: de });       // "Juni"
-dt.fromNow({ locale: fr });              // "il y a 5 minutes"
-dt.toRelative({ locale: de });           // "gestern"
+dt.fromNow({ locale: ru });             // "5 минут назад"
+dt.toRelative({ locale: ja });          // "昨日"
 ```
 
-Custom locales are just objects implementing the exported `Locale` interface.
+Plural handling is correct, not just a singular/plural split: Russian selects
+its three forms (`1 минуту` / `2 минуты` / `5 минут`) through a CLDR `plural`
+function, and languages with no inflection (Chinese, Japanese) use single-form
+units and drop the number/unit space (`2小时30分钟`). Custom locales are just
+objects implementing the exported `Locale` interface — provide a `plural(n)`
+selector and multi-form arrays for any language the built-ins don't cover.
 
 ### Format Tokens
 
@@ -168,9 +173,10 @@ const data = getTimezoneData(); // { version, zones, rules, links, metadata }
 
 ## Status
 
-Core is complete and covered by 207 automated tests (parsing rejection tables, DST
-spring-forward/fall-back arithmetic, timezone-aware bucketing, dual-package smoke test).
-CI runs Node 18/20/22/24 on Linux plus Node 22 on macOS and Windows.
+Core is complete and covered by 237 automated tests (parsing rejection tables, DST
+spring-forward/fall-back arithmetic, timezone-aware bucketing, locale plurals,
+dual-package smoke test). CI runs Node 18/20/22/24 on Linux plus Node 22 on
+macOS and Windows.
 
 | Component | Status |
 |-----------|--------|
@@ -179,17 +185,18 @@ CI runs Node 18/20/22/24 on Linux plus Node 22 on macOS and Windows.
 | Comparison (isBefore/After, isSameOrBefore/After, isBetween, min/max) | ✅ |
 | Duration (fromISO, humanize, cascading format) | ✅ |
 | Timezone utilities (search, canonical links, DST) | ✅ |
-| Locales (global, per-instance, tree-shakeable) | ✅ en, de, fr |
+| Locales (global, per-instance, tree-shakeable, CLDR plurals) | ✅ 12 languages |
 | IANA data pipeline (2026b, 568 zones, 256 links) | ✅ |
 | ESM + CJS dual build | ✅ |
 | Bundle size (11KB gzipped core, CI-enforced < 20KB + tree-shaking) | ✅ |
 
 **Roadmap to v1.0**: native IANA-rule offset math (current math uses cached
-`Intl.DateTimeFormat` — accurate, but rule-based math will be faster), more
-locales, optional LocalDate/LocalTime plain-types, CDN build, month-name
-parsing in `fromFormat` (`MMM`/`MMMM` tokens). These are the only items from
-the implementation guide not yet shipped; everything in the guide's "Critical"
-and "High Priority" tiers is done.
+`Intl.DateTimeFormat` — accurate, but rule-based math will be faster), optional
+LocalDate/LocalTime plain-types, CDN build, month-name parsing in `fromFormat`
+(`MMM`/`MMMM` tokens), and Arabic — its grammar omits the numeral for one/two
+("دقيقتان" = two minutes), which needs a richer relative-time formatter than the
+current `{value} {unit}` model. Everything in the implementation guide's
+"Critical" and "High Priority" tiers is done.
 
 ### Performance
 
@@ -279,7 +286,8 @@ scripts/
 ├── parse-iana.js     # Generate src/tzdata/ modules
 ├── check-size.js     # CI bundle-size guard (pnpm size)
 ├── benchmark.js      # Performance benchmark (pnpm bench)
-test/                 # node:test suite (207 tests, incl. security + exports)
+src/locales/          # de fr es pt it ru zh ja id hi bn (tree-shakeable)
+test/                 # node:test suite (237 tests)
 ```
 
 ### Updating IANA Timezone Data

@@ -8,6 +8,7 @@
 
 import type { RelativeTimeOptions } from './types.js';
 import type { Locale, RelativeUnit } from './locale.js';
+import { pickForm } from './locale.js';
 
 export interface WallClock {
   year: number;
@@ -186,9 +187,10 @@ export function humanizeDelta(
         return short ? rt.now : template.replace('{0}', rt.fewSeconds);
       }
 
+      const sep = locale.numberSeparator ?? ' ';
       const label = short
         ? `${value}${rt.shortUnits[unit]}`
-        : `${value} ${rt.units[unit][value === 1 ? 0 : 1]}`;
+        : `${value}${sep}${pickForm(rt.units[unit], value, locale)}`;
       return template.replace('{0}', label);
     }
   }

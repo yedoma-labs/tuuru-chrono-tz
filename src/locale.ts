@@ -24,6 +24,24 @@ export interface Locale {
   /** AM/PM rendering for the `A` (uppercase) and `a` (lowercase) tokens */
   meridiem(hour: number, lowercase: boolean): string;
 
+  /**
+   * Plural-form selector: maps a count to an index into a unit's form array.
+   *
+   * Omit for languages with a simple singular/plural split (the default is
+   * `n === 1 ? 0 : 1`). Provide it for languages with more forms — e.g.
+   * Russian has three (one / few / many), so its unit arrays have three
+   * entries and `plural` returns 0, 1, or 2. Languages with no inflection
+   * (Chinese, Japanese) use single-entry arrays and `plural` returns 0.
+   */
+  plural?(n: number): number;
+
+  /**
+   * Separator placed between a number and its unit word in the long form,
+   * e.g. "2 hours". Defaults to a space; set to '' for CJK languages that
+   * write "2小时" with no gap.
+   */
+  numberSeparator?: string;
+
   relativeTime: {
     /** Template for future deltas, '{0}' is the unit phrase, e.g. 'in {0}' */
     future: string;
@@ -33,8 +51,8 @@ export interface Locale {
     fewSeconds: string;
     /** Short-form phrase for sub-5-second deltas, e.g. 'now' */
     now: string;
-    /** [singular, plural] per unit */
-    units: Readonly<Record<RelativeUnit, readonly [string, string]>>;
+    /** Plural forms per unit, ordered to match `plural` (1+ entries) */
+    units: Readonly<Record<RelativeUnit, readonly string[]>>;
     /** Short suffix per unit, e.g. 'm' for minutes */
     shortUnits: Readonly<Record<RelativeUnit, string>>;
   };
@@ -50,8 +68,8 @@ export interface Locale {
   };
 
   duration: {
-    /** [singular, plural] per unit for Duration.humanize() */
-    units: Readonly<Record<RelativeUnit, readonly [string, string]>>;
+    /** Plural forms per unit for Duration.humanize(), ordered to match `plural` */
+    units: Readonly<Record<RelativeUnit, readonly string[]>>;
     /** Short suffix per unit for humanize({ short: true }) */
     shortUnits: Readonly<Record<RelativeUnit, string>>;
     /** Separator between parts in long form, e.g. ', ' */
@@ -61,6 +79,16 @@ export interface Locale {
     /** Short-form phrase for a zero duration */
     zeroShort: string;
   };
+}
+
+/**
+ * Pick the correct plural form for a count using the locale's selector
+ * (default: English binary). Clamps to the available forms so a locale
+ * that supplies fewer forms than its selector indexes never reads undefined.
+ */
+export function pickForm(forms: readonly string[], n: number, locale: Locale): string {
+  const idx = locale.plural ? locale.plural(n) : (n === 1 ? 0 : 1);
+  return forms[Math.min(idx, forms.length - 1)] ?? forms[0]!;
 }
 
 /**

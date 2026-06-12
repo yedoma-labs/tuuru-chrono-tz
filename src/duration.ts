@@ -5,7 +5,7 @@
  */
 
 import type { DurationObject, HumanizeOptions } from './types.js';
-import { getDefaultLocale } from './locale.js';
+import { getDefaultLocale, pickForm } from './locale.js';
 import type { RelativeUnit } from './locale.js';
 
 /**
@@ -225,7 +225,9 @@ export class Duration {
     const parts: string[] = [];
     const short = options?.short ?? false;
     const largest = options?.largest ?? Infinity;
-    const loc = (options?.locale ?? getDefaultLocale()).duration;
+    const locale = options?.locale ?? getDefaultLocale();
+    const loc = locale.duration;
+    const sep = locale.numberSeparator ?? ' ';
 
     const components: Array<[RelativeUnit, number]> = [
       ['year', d.years],
@@ -240,7 +242,7 @@ export class Duration {
       if (value > 0 && parts.length < largest) {
         parts.push(short
           ? `${value}${loc.shortUnits[unit]}`
-          : `${value} ${loc.units[unit][value === 1 ? 0 : 1]}`);
+          : `${value}${sep}${pickForm(loc.units[unit], value, locale)}`);
       }
     }
 

@@ -11,9 +11,19 @@ export { Duration } from './duration.js';
 export { Timezone } from './timezone.js';
 
 // Locales (tree-shakeable: unused locales are dropped by bundlers)
+// Ordered roughly by number of speakers.
 export { en, setDefaultLocale, getDefaultLocale } from './locale.js';
+export { zh } from './locales/zh.js';
+export { hi } from './locales/hi.js';
+export { es } from './locales/es.js';
+export { bn } from './locales/bn.js';
+export { pt } from './locales/pt.js';
+export { ru } from './locales/ru.js';
+export { id } from './locales/id.js';
+export { ja } from './locales/ja.js';
 export { de } from './locales/de.js';
 export { fr } from './locales/fr.js';
+export { it } from './locales/it.js';
 export type { Locale, RelativeUnit } from './locale.js';
 
 export type {
