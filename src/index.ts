@@ -30,6 +30,10 @@ export { pl } from './locales/pl.js';
 export { nl } from './locales/nl.js';
 export { th } from './locales/th.js';
 export { it } from './locales/it.js';
+export { ar } from './locales/ar.js';
+export { fa } from './locales/fa.js';
+export { ur } from './locales/ur.js';
+export { uk } from './locales/uk.js';
 export type { Locale, RelativeUnit } from './locale.js';
 
 export type {

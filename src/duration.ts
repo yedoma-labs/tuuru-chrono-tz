@@ -242,7 +242,9 @@ export class Duration {
       if (value > 0 && parts.length < largest) {
         parts.push(short
           ? `${value}${loc.shortUnits[unit]}`
-          : `${value}${sep}${pickForm(loc.units[unit], value, locale)}`);
+          : locale.formatCount
+            ? locale.formatCount(value, loc.units[unit], unit)
+            : `${value}${sep}${pickForm(loc.units[unit], value, locale)}`);
       }
     }
 

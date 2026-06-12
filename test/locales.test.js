@@ -3,13 +3,16 @@ import assert from 'node:assert/strict';
 
 import {
   DateTime, Duration,
-  en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th,
+  en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th, ar, fa, ur, uk,
   it as itLocale
 } from '../dist/esm/index.js';
 
 afterEach(() => DateTime.setDefaultLocale(en));
 
-const ALL = { en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th, it: itLocale };
+const ALL = {
+  en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th, ar, fa, ur, uk,
+  it: itLocale
+};
 
 const UNITS = ['second', 'minute', 'hour', 'day', 'month', 'year'];
 
@@ -82,12 +85,14 @@ describe('format in each locale', () => {
   const expectMonth = {
     es: 'junio', pt: 'junho', it: 'giugno', ru: 'июнь',
     zh: '六月', ja: '6月', id: 'Juni', hi: 'जून', bn: 'জুন',
-    ko: '6월', tr: 'Haziran', vi: 'Tháng 6', pl: 'czerwiec', nl: 'juni', th: 'มิถุนายน'
+    ko: '6월', tr: 'Haziran', vi: 'Tháng 6', pl: 'czerwiec', nl: 'juni', th: 'มิถุนายน',
+    ar: 'يونيو', fa: 'ژوئن', ur: 'جون', uk: 'червень'
   };
   const expectWeekday = {
     es: 'domingo', pt: 'domingo', it: 'domenica', ru: 'воскресенье',
     zh: '星期日', ja: '日曜日', id: 'Minggu', hi: 'रविवार', bn: 'রবিবার',
-    ko: '일요일', tr: 'Pazar', vi: 'Chủ Nhật', pl: 'niedziela', nl: 'zondag', th: 'อาทิตย์'
+    ko: '일요일', tr: 'Pazar', vi: 'Chủ Nhật', pl: 'niedziela', nl: 'zondag', th: 'อาทิตย์',
+    ar: 'الأحد', fa: 'یکشنبه', ur: 'اتوار', uk: 'неділя'
   };
 
   for (const [name, month] of Object.entries(expectMonth)) {
@@ -182,6 +187,56 @@ describe('Polish three-form plurals', () => {
     assert.equal(phrase(3), 'w przyszłą środę');        // fem (accusative)
     assert.equal(phrase(6), 'w przyszłą sobotę');       // fem
     assert.equal(pl.calendar.lastWeek(pl.weekdays[2], 3), 'w zeszłą środę');
+  });
+});
+
+describe('Arabic numeral agreement (formatCount)', () => {
+  const minsAgo = (n) => DateTime.fromMilliseconds(Date.now() - n * 60000).fromNow({ locale: ar });
+
+  it('drops the numeral for one and two, shows plural for 3-10, singular for 11+', () => {
+    assert.equal(minsAgo(1), 'منذ دقيقة');       // bare singular, no numeral
+    assert.equal(minsAgo(2), 'منذ دقيقتين');     // dual, no numeral
+    assert.equal(minsAgo(3), 'منذ 3 دقائق');     // numeral + plural
+    assert.equal(minsAgo(10), 'منذ 10 دقائق');   // numeral + plural
+    assert.equal(minsAgo(11), 'منذ 11 دقيقة');   // numeral + singular
+    assert.equal(minsAgo(30), 'منذ 30 دقيقة');   // numeral + singular
+  });
+
+  it('applies in future direction and humanize', () => {
+    const future = DateTime.fromMilliseconds(Date.now() + 2 * 3600000);
+    assert.equal(future.fromNow({ locale: ar }), 'بعد ساعتين');
+    assert.equal(Duration.fromObject({ hours: 1 }).humanize({ locale: ar }), 'ساعة');
+    assert.equal(Duration.fromObject({ hours: 2, minutes: 30 }).humanize({ locale: ar }), 'ساعتين، 30 دقيقة');
+  });
+});
+
+describe('Ukrainian three-form plurals and gender calendar', () => {
+  const minsAgo = (n) => DateTime.fromMilliseconds(Date.now() - n * 60000).fromNow({ locale: uk });
+
+  it('selects one / few / many', () => {
+    assert.equal(minsAgo(1), '1 хвилину тому');
+    assert.equal(minsAgo(2), '2 хвилини тому');
+    assert.equal(minsAgo(5), '5 хвилин тому');
+    assert.equal(minsAgo(22), '22 хвилини тому');
+  });
+
+  it('calendar week phrases agree in gender and case', () => {
+    const phrase = (i) => uk.calendar.nextWeek(uk.weekdays[i - 1], i);
+    assert.equal(phrase(1), 'у наступний понеділок'); // masc
+    assert.equal(phrase(3), 'у наступну середу');     // fem (accusative)
+    assert.equal(phrase(6), 'у наступну суботу');     // fem
+  });
+});
+
+describe('Persian and Urdu', () => {
+  it('Persian single-form relative time', () => {
+    assert.equal(DateTime.fromMilliseconds(Date.now() - 5 * 60000).fromNow({ locale: fa }), '5 دقیقه پیش');
+  });
+
+  it('Urdu binary plural inflects the hour', () => {
+    assert.equal(DateTime.fromMilliseconds(Date.now() - 5 * 60000).fromNow({ locale: ur }), '5 منٹ پہلے');
+    assert.equal(Duration.fromObject({ hours: 1 }).humanize({ locale: ur }), '1 گھنٹہ');
+    assert.equal(Duration.fromObject({ hours: 2 }).humanize({ locale: ur }), '2 گھنٹے');
   });
 });
 

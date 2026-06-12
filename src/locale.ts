@@ -42,6 +42,18 @@ export interface Locale {
    */
   numberSeparator?: string;
 
+  /**
+   * Render the complete "number + unit" phrase for one component, overriding
+   * the default `${n}${numberSeparator}${pickForm(forms, n)}`.
+   *
+   * Needed for languages whose grammar changes or drops the numeral at small
+   * counts. Arabic, for example, uses the bare singular for one ("دقيقة"), a
+   * dual form with no numeral for two ("دقيقتين"), the plural with a numeral
+   * for 3-10 ("5 دقائق"), and the singular with a numeral for 11+
+   * ("11 دقيقة"). Receives the count, the unit's form array, and the unit.
+   */
+  formatCount?(n: number, forms: readonly string[], unit: RelativeUnit): string;
+
   relativeTime: {
     /** Template for future deltas, '{0}' is the unit phrase, e.g. 'in {0}' */
     future: string;
