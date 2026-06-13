@@ -609,3 +609,60 @@ describe('DateTime validity & misc', () => {
     assert.notEqual(local.timezone, 'local');
   });
 });
+
+describe('DateTime — convenience methods', () => {
+  it('compareTo returns -1 / 0 / 1, safe for Array.sort', () => {
+    const a = DateTime.fromISO('2024-01-01T00:00:00Z');
+    const b = DateTime.fromISO('2024-06-09T00:00:00Z');
+    assert.equal(a.compareTo(b), -1);
+    assert.equal(b.compareTo(a), 1);
+    assert.equal(a.compareTo(DateTime.fromISO('2024-01-01T00:00:00Z')), 0);
+    const dates = [b, a, DateTime.fromISO('2024-03-15T00:00:00Z')];
+    dates.sort((x, y) => x.compareTo(y));
+    assert.equal(dates[0].toISO(), '2024-01-01T00:00:00.000Z');
+    assert.equal(dates[2].toISO(), '2024-06-09T00:00:00.000Z');
+  });
+
+  it('isToday / isTomorrow / isYesterday — far dates always false', () => {
+    const past = DateTime.fromISO('2000-01-01T00:00:00Z');
+    const future = DateTime.fromISO('2099-12-31T00:00:00Z');
+    assert.equal(past.isToday(), false);
+    assert.equal(past.isTomorrow(), false);
+    assert.equal(past.isYesterday(), false);
+    assert.equal(future.isToday(), false);
+    assert.equal(future.isTomorrow(), false);
+    assert.equal(future.isYesterday(), false);
+  });
+
+  it('isWeekend / isWeekday', () => {
+    const sat = DateTime.fromISO('2024-06-08T12:00:00Z'); // Saturday
+    const sun = DateTime.fromISO('2024-06-09T12:00:00Z'); // Sunday
+    const mon = DateTime.fromISO('2024-06-10T12:00:00Z'); // Monday
+    const fri = DateTime.fromISO('2024-06-07T12:00:00Z'); // Friday
+    assert.ok(sat.isWeekend());
+    assert.ok(sun.isWeekend());
+    assert.ok(mon.isWeekday());
+    assert.ok(fri.isWeekday());
+    assert.ok(!mon.isWeekend());
+    assert.ok(!sat.isWeekday());
+  });
+
+  it('clamp stays within bounds', () => {
+    const min = DateTime.fromISO('2024-01-01T00:00:00Z');
+    const max = DateTime.fromISO('2024-12-31T00:00:00Z');
+    const mid = DateTime.fromISO('2024-06-15T00:00:00Z');
+    assert.equal(mid.clamp(min, max).toISO(), mid.toISO());
+    assert.equal(DateTime.fromISO('2023-01-01T00:00:00Z').clamp(min, max).toISO(), min.toISO());
+    assert.equal(DateTime.fromISO('2025-01-01T00:00:00Z').clamp(min, max).toISO(), max.toISO());
+  });
+
+  it('weeksInYear returns 52 or 53', () => {
+    // Known 53-week years: 2004, 2009, 2015, 2020, 2026
+    assert.equal(DateTime.fromISO('2004-06-01T00:00:00Z').weeksInYear, 53);
+    assert.equal(DateTime.fromISO('2015-06-01T00:00:00Z').weeksInYear, 53);
+    assert.equal(DateTime.fromISO('2020-06-01T00:00:00Z').weeksInYear, 53);
+    // Known 52-week years: 2024
+    assert.equal(DateTime.fromISO('2024-06-01T00:00:00Z').weeksInYear, 52);
+    assert.equal(DateTime.fromISO('2023-06-01T00:00:00Z').weeksInYear, 52);
+  });
+});

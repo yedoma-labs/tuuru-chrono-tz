@@ -795,6 +795,11 @@ export class DateTime {
       other.setTimezone(this.#timezone).startOf(unit).valueOf();
   }
 
+  /** -1 if this < other, 0 if equal, 1 if this > other. Safe for Array.sort. */
+  compareTo(other: DateTime): -1 | 0 | 1 {
+    return this.#timestamp < other.#timestamp ? -1 : this.#timestamp > other.#timestamp ? 1 : 0;
+  }
+
   isBetween(start: DateTime, end: DateTime): boolean {
     return this.#timestamp >= start.#timestamp && this.#timestamp <= end.#timestamp;
   }
@@ -1041,6 +1046,56 @@ export class DateTime {
 
     const startOfNext = this.startOf(unit).add(nextUnit);
     return new DateTime(startOfNext.valueOf() - 1, this.#timezone, this.#locale);
+  }
+
+  /** True if this DateTime falls on today's date in its own timezone. */
+  isToday(): boolean {
+    const now = new DateTime(Date.now(), this.#timezone);
+    return this.isSame(now, 'day');
+  }
+
+  /** True if this DateTime falls on tomorrow's date in its own timezone. */
+  isTomorrow(): boolean {
+    const tomorrow = new DateTime(Date.now(), this.#timezone).add({ days: 1 });
+    return this.isSame(tomorrow, 'day');
+  }
+
+  /** True if this DateTime falls on yesterday's date in its own timezone. */
+  isYesterday(): boolean {
+    const yesterday = new DateTime(Date.now(), this.#timezone).subtract({ days: 1 });
+    return this.isSame(yesterday, 'day');
+  }
+
+  /** True if weekday is Saturday (6) or Sunday (7). */
+  isWeekend(): boolean {
+    return this.weekday >= 6;
+  }
+
+  /** True if weekday is Monday–Friday (1–5). */
+  isWeekday(): boolean {
+    return this.weekday <= 5;
+  }
+
+  /** Clamp to [min, max] by absolute timestamp. */
+  clamp(min: DateTime, max: DateTime): DateTime {
+    if (this.#timestamp <= min.#timestamp) return min;
+    if (this.#timestamp >= max.#timestamp) return max;
+    return this;
+  }
+
+  /**
+   * Number of ISO 8601 weeks in this instance's year (52 or 53).
+   * Dec 28 always belongs to the last ISO week of its calendar year.
+   */
+  get weeksInYear(): number {
+    const y = this.#wallClock.year;
+    const dec28 = new Date(Date.UTC(y, 11, 28));
+    const dow = (dec28.getUTCDay() + 6) % 7;
+    dec28.setUTCDate(dec28.getUTCDate() - dow + 3);
+    const jan4 = new Date(Date.UTC(y, 0, 4));
+    const jan4dow = (jan4.getUTCDay() + 6) % 7;
+    jan4.setUTCDate(jan4.getUTCDate() - jan4dow + 3);
+    return Math.round((dec28.getTime() - jan4.getTime()) / (7 * 86400000)) + 1;
   }
 
   isValid(): boolean {

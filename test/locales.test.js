@@ -5,6 +5,7 @@ import {
   DateTime, Duration,
   en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th, ar, fa, ur, uk,
   da, sv, nb, fi, is, hu, ro, bg, el, cs, sk, hr, sr,
+  ms, sw, he, ca, tl, gu, mr, ta,
   it as itLocale
 } from '../dist/esm/index.js';
 
@@ -13,6 +14,7 @@ afterEach(() => DateTime.setDefaultLocale(en));
 const ALL = {
   en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th, ar, fa, ur, uk,
   da, sv, nb, fi, is, hu, ro, bg, el, cs, sk, hr, sr,
+  ms, sw, he, ca, tl, gu, mr, ta,
   it: itLocale
 };
 

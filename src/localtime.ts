@@ -97,6 +97,14 @@ export class LocalTime {
   isAfter(other: LocalTime): boolean { return this.#ms > other.#ms; }
   isSameOrBefore(other: LocalTime): boolean { return this.#ms <= other.#ms; }
   isSameOrAfter(other: LocalTime): boolean { return this.#ms >= other.#ms; }
+  isBetween(start: LocalTime, end: LocalTime): boolean {
+    return this.#ms >= start.#ms && this.#ms <= end.#ms;
+  }
+
+  /** -1 if this < other, 0 if equal, 1 if this > other. Safe for Array.sort. */
+  compareTo(other: LocalTime): -1 | 0 | 1 {
+    return this.#ms < other.#ms ? -1 : this.#ms > other.#ms ? 1 : 0;
+  }
 
   // ---- conversion / formatting --------------------------------------------
 

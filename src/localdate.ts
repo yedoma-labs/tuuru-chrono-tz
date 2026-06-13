@@ -155,6 +155,22 @@ export class LocalDate {
     return this.#ordinal >= start.#ordinal && this.#ordinal <= end.#ordinal;
   }
 
+  /** -1 if this < other, 0 if equal, 1 if this > other. Safe for Array.sort. */
+  compareTo(other: LocalDate): -1 | 0 | 1 {
+    return this.#ordinal < other.#ordinal ? -1 : this.#ordinal > other.#ordinal ? 1 : 0;
+  }
+
+  /** True if this date is today in the given timezone (default: system local). */
+  isToday(timezone: string = 'local'): boolean {
+    return this.equals(LocalDate.today(timezone));
+  }
+
+  /** True if weekday is Saturday (6) or Sunday (7). */
+  isWeekend(): boolean { return this.weekday >= 6; }
+
+  /** True if weekday is Monday–Friday (1–5). */
+  isWeekday(): boolean { return this.weekday <= 5; }
+
   // ---- conversion / formatting --------------------------------------------
 
   /**

@@ -131,4 +131,55 @@ describe('LocalTime', () => {
     assert.equal(JSON.stringify(LocalTime.fromISO('10:30')), '"10:30:00"');
     assert.ok(LocalTime.fromISO('09:00') < LocalTime.fromISO('17:00'));
   });
+
+  it('compareTo returns -1 / 0 / 1', () => {
+    const a = LocalTime.fromISO('09:00');
+    const b = LocalTime.fromISO('17:30');
+    assert.equal(a.compareTo(b), -1);
+    assert.equal(b.compareTo(a), 1);
+    assert.equal(a.compareTo(LocalTime.of(9, 0)), 0);
+    const times = [b, a, LocalTime.fromISO('12:00')];
+    times.sort((x, y) => x.compareTo(y));
+    assert.equal(times[0].toISO(), '09:00:00');
+    assert.equal(times[2].toISO(), '17:30:00');
+  });
+
+  it('isBetween', () => {
+    const start = LocalTime.fromISO('09:00');
+    const end = LocalTime.fromISO('17:00');
+    assert.ok(LocalTime.fromISO('12:00').isBetween(start, end));
+    assert.ok(start.isBetween(start, end)); // inclusive
+    assert.ok(!LocalTime.fromISO('08:59').isBetween(start, end));
+  });
+});
+
+describe('LocalDate — new convenience methods', () => {
+  it('compareTo returns -1 / 0 / 1', () => {
+    const a = LocalDate.fromISO('2024-01-01');
+    const b = LocalDate.fromISO('2024-06-09');
+    assert.equal(a.compareTo(b), -1);
+    assert.equal(b.compareTo(a), 1);
+    assert.equal(a.compareTo(LocalDate.of(2024, 1, 1)), 0);
+    const dates = [b, a, LocalDate.fromISO('2024-03-15')];
+    dates.sort((x, y) => x.compareTo(y));
+    assert.equal(dates[0].toISO(), '2024-01-01');
+    assert.equal(dates[2].toISO(), '2024-06-09');
+  });
+
+  it('isWeekend / isWeekday', () => {
+    const sat = LocalDate.fromISO('2024-06-08'); // Saturday, weekday=6
+    const sun = LocalDate.fromISO('2024-06-09'); // Sunday, weekday=7
+    const mon = LocalDate.fromISO('2024-06-10'); // Monday, weekday=1
+    assert.ok(sat.isWeekend());
+    assert.ok(sun.isWeekend());
+    assert.ok(!sat.isWeekday());
+    assert.ok(mon.isWeekday());
+    assert.ok(!mon.isWeekend());
+  });
+
+  it('isToday returns deterministic boolean for non-today dates', () => {
+    // A date far in the past cannot be today — avoids time-dependent assertions
+    assert.equal(LocalDate.fromISO('2000-01-01').isToday('UTC'), false);
+    assert.equal(LocalDate.fromISO('2099-12-31').isToday('UTC'), false);
+  });
 });

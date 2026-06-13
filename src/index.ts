@@ -49,6 +49,14 @@ export { cs } from './locales/cs.js';
 export { sk } from './locales/sk.js';
 export { hr } from './locales/hr.js';
 export { sr } from './locales/sr.js';
+export { ms } from './locales/ms.js';
+export { sw } from './locales/sw.js';
+export { he } from './locales/he.js';
+export { ca } from './locales/ca.js';
+export { tl } from './locales/tl.js';
+export { gu } from './locales/gu.js';
+export { mr } from './locales/mr.js';
+export { ta } from './locales/ta.js';
 export type { Locale, RelativeUnit } from './locale.js';
 
 export type {
