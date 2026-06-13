@@ -54,6 +54,7 @@
     "dist/**/*.d.ts",
     "dist/**/package.json",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "main": "./dist/cjs/index.js",
