@@ -1083,6 +1083,23 @@ export class DateTime {
     return this;
   }
 
+  /** Create a shallow copy (useful for mutation-heavy code migration). */
+  clone(): DateTime {
+    return new DateTime(this.#timestamp, this.#timezone, this.#locale);
+  }
+
+  /** True if same calendar day (ignores time/timezone). */
+  isSameDay(other: DateTime): boolean {
+    return this.year === other.year && this.month === other.month && this.day === other.day;
+  }
+
+  /** Number of whole days between this and another date (positive if other is later). */
+  daysUntil(other: DateTime): number {
+    const thisDay = this.startOf('day').valueOf();
+    const otherDay = other.setTimezone(this.#timezone).startOf('day').valueOf();
+    return Math.round((otherDay - thisDay) / 86400000);
+  }
+
   /**
    * Number of ISO 8601 weeks in this instance's year (52 or 53).
    * Dec 28 always belongs to the last ISO week of its calendar year.

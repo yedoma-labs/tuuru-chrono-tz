@@ -9,6 +9,9 @@ All notable changes to `@yedoma-labs/tuuru-chrono-tz` follow [Keep a Changelog](
 ### Added
 
 **Convenience methods**
+- `DateTime.clone()` — create shallow copy (useful for mutation-heavy code migration).
+- `DateTime.isSameDay(other)` — compare dates ignoring time/timezone.
+- `DateTime.daysUntil(other)` — days between two dates (positive if other is later).
 - `DateTime.compareTo(other)` → `-1 | 0 | 1` — safe for `Array.sort`.
 - `DateTime.isToday()` / `isTomorrow()` / `isYesterday()` — evaluated in the instance's own timezone.
 - `DateTime.isWeekend()` / `isWeekday()` — weekday 6-7 vs 1-5.
@@ -16,6 +19,16 @@ All notable changes to `@yedoma-labs/tuuru-chrono-tz` follow [Keep a Changelog](
 - `DateTime.weeksInYear` getter — ISO 8601 weeks in the instance's year (52 or 53).
 - `LocalDate.compareTo()` / `isToday(tz?)` / `isWeekend()` / `isWeekday()`.
 - `LocalTime.compareTo()` / `isBetween(start, end)`.
+
+**CLDR Locales**
+- Fully automated CLDR download & conversion pipeline (`pnpm run build-cldr-all`).
+- Script extracts months, weekdays, meridiem, unit translations, and plural rules from CLDR JSON.
+- 41 locales auto-generated from CLDR v45 (includes ar, bg, bn, ca, cs, da, de, el, es, fa, fi, fr, gu, he, hi, hr, hu, id, is, it, ja, ko, mr, ms, nb, nl, pl, pt, ro, ru, sk, sr, sv, sw, ta, th, tr, uk, ur, vi, zh).
+
+**Testing & Quality**
+- New comprehensive test suite for convenience methods (41 new tests, `test/convenience.test.js`).
+- Total test count: 378 tests across 11 test files (2266 lines).
+- Verified: clone behavior, date comparison edge cases, timezone handling, duration sign checks, CLDR data extraction.
 
 **New locales (51 total, up from 43)**
 - `ms` (Malay) — single-form, like Indonesian.
