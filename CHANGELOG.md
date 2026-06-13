@@ -4,6 +4,31 @@ All notable changes to `@yedoma-labs/tuuru-chrono-tz` follow [Keep a Changelog](
 
 ---
 
+## [Unreleased]
+
+### Added
+
+**Convenience methods**
+- `DateTime.compareTo(other)` → `-1 | 0 | 1` — safe for `Array.sort`.
+- `DateTime.isToday()` / `isTomorrow()` / `isYesterday()` — evaluated in the instance's own timezone.
+- `DateTime.isWeekend()` / `isWeekday()` — weekday 6-7 vs 1-5.
+- `DateTime.clamp(min, max)` — bound by absolute timestamp.
+- `DateTime.weeksInYear` getter — ISO 8601 weeks in the instance's year (52 or 53).
+- `LocalDate.compareTo()` / `isToday(tz?)` / `isWeekend()` / `isWeekday()`.
+- `LocalTime.compareTo()` / `isBetween(start, end)`.
+
+**New locales (51 total, up from 43)**
+- `ms` (Malay) — single-form, like Indonesian.
+- `sw` (Swahili) — binary with noun-class plurals.
+- `he` (Hebrew) — 3 forms including dual (`n === 2`).
+- `ca` (Catalan) — binary.
+- `tl` (Filipino/Tagalog) — single-form.
+- `gu` (Gujarati) — binary.
+- `mr` (Marathi) — binary.
+- `ta` (Tamil) — single-form.
+
+---
+
 ## [0.1.0] — 2026-06-13
 
 First public release. Full feature set documented in [README](./README.md).
