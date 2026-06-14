@@ -4,46 +4,27 @@ All notable changes to `@yedoma-labs/tuuru-chrono-tz` follow [Keep a Changelog](
 
 ---
 
-## [Unreleased]
+## [0.2.0] — 2026-06-14
 
 ### Added
 
 **Convenience methods**
-- `DateTime.clone()` — create shallow copy (useful for mutation-heavy code migration).
-- `DateTime.isSameDay(other)` — compare dates ignoring time/timezone.
-- `DateTime.daysUntil(other)` — days between two dates (positive if other is later).
 - `DateTime.compareTo(other)` → `-1 | 0 | 1` — safe for `Array.sort`.
 - `DateTime.isToday()` / `isTomorrow()` / `isYesterday()` — evaluated in the instance's own timezone.
-- `DateTime.isWeekend()` / `isWeekday()` — weekday 6-7 vs 1-5.
-- `DateTime.clamp(min, max)` — bound by absolute timestamp.
-- `DateTime.weeksInYear` getter — ISO 8601 weeks in the instance's year (52 or 53).
+- `DateTime.isWeekend()` / `isWeekday()` — weekday 6–7 vs 1–5.
+- `DateTime.clamp(min, max)` — clamp to timestamp range.
+- `DateTime.weeksInYear` — ISO 8601 weeks in this year (52 or 53).
 - `LocalDate.compareTo()` / `isToday(tz?)` / `isWeekend()` / `isWeekday()`.
 - `LocalTime.compareTo()` / `isBetween(start, end)`.
 
-**CLDR Locales**
-- Fully automated CLDR download & conversion pipeline (`pnpm run build-cldr-all`).
-- Script extracts months, weekdays, meridiem, unit translations, and plural rules from CLDR JSON.
-- 41 locales auto-generated from CLDR v45 (includes ar, bg, bn, ca, cs, da, de, el, es, fa, fi, fr, gu, he, hi, hr, hu, id, is, it, ja, ko, mr, ms, nb, nl, pl, pt, ro, ru, sk, sr, sv, sw, ta, th, tr, uk, ur, vi, zh).
-
-**Testing & Quality**
-- New comprehensive test suite for convenience methods (41 new tests, `test/convenience.test.js`).
-- Total test count: 378 tests across 11 test files (2266 lines).
-- Verified: clone behavior, date comparison edge cases, timezone handling, duration sign checks, CLDR data extraction.
-
-**New locales (86 total, up from 43)**
-- `ms` (Malay) — single-form, like Indonesian.
-- `sw` (Swahili) — binary with noun-class plurals.
-- `he` (Hebrew) — 3 forms including dual (`n === 2`).
-- `ca` (Catalan) — binary.
-- `tl` / `fil` (Filipino/Tagalog) — single-form.
-- `gu` (Gujarati) — binary.
-- `mr` (Marathi) — binary.
-- `ta` (Tamil) — single-form.
-- CLDR-generated (44 additional): `af`, `am`, `as`, `az`, `be`, `bs`, `cy`, `et`, `eu`, `ga`, `gl`, `hy`, `jv`, `ka`, `kk`, `km`, `kn`, `ky`, `lo`, `lt`, `lv`, `mk`, `ml`, `mn`, `my`, `ne`, `or`, `pa`, `ps`, `sd`, `si`, `sl`, `so`, `sq`, `sr_Latn`, `te`, `tk`, `uz`, `yue`, `zh_Hans`, `zh_Hant`, `zu` — native month/weekday names and unit words from CLDR, correct plural rules, English-fallback relative-time wrappers.
+**87 locales (up from 35)**
+- Hand-crafted: `ms`, `sw`, `he` (with dual form), `ca`, `tl`, `fil`, `gu`, `mr`, `ta`.
+- CLDR-generated (44): `af`, `am`, `as`, `az`, `be`, `bs`, `cy`, `et`, `eu`, `ga`, `gl`, `hy`, `jv`, `ka`, `kk`, `km`, `kn`, `ky`, `lo`, `lt`, `lv`, `mk`, `ml`, `mn`, `my`, `ne`, `or`, `pa`, `ps`, `sd`, `si`, `sl`, `so`, `sq`, `sr_Latn`, `te`, `tk`, `uz`, `yue`, `zh_Hans`, `zh_Hant`, `zu` — native month/weekday names and unit words, correct CLDR plural rules.
+- All locales tree-shakeable via `./locales/<code>` subpath; core bundle unchanged at 11.7 KB gzip.
 
 **CLDR locale pipeline**
-- `pnpm download-cldr` + `pnpm build-cldr` regenerates all locales from cldr-data package.
-- Skips existing hand-crafted locales (ar, ru, pl, cs, fi, is, hr, sr, uk, etc.) to preserve richer translations.
+- `pnpm download-cldr` links `cldr-data` package into `data/cldr-main`.
+- `pnpm build-cldr` auto-generates TypeScript locale files for all discovered CLDR base locales, skipping existing hand-crafted ones.
 
 ---
 
@@ -106,4 +87,5 @@ First public release. Full feature set documented in [README](./README.md).
 
 ---
 
+[0.2.0]: https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yedoma-labs/tuuru-chrono-tz/releases/tag/v0.1.0
