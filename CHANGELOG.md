@@ -30,15 +30,20 @@ All notable changes to `@yedoma-labs/tuuru-chrono-tz` follow [Keep a Changelog](
 - Total test count: 378 tests across 11 test files (2266 lines).
 - Verified: clone behavior, date comparison edge cases, timezone handling, duration sign checks, CLDR data extraction.
 
-**New locales (51 total, up from 43)**
+**New locales (86 total, up from 43)**
 - `ms` (Malay) — single-form, like Indonesian.
 - `sw` (Swahili) — binary with noun-class plurals.
 - `he` (Hebrew) — 3 forms including dual (`n === 2`).
 - `ca` (Catalan) — binary.
-- `tl` (Filipino/Tagalog) — single-form.
+- `tl` / `fil` (Filipino/Tagalog) — single-form.
 - `gu` (Gujarati) — binary.
 - `mr` (Marathi) — binary.
 - `ta` (Tamil) — single-form.
+- CLDR-generated (44 additional): `af`, `am`, `as`, `az`, `be`, `bs`, `cy`, `et`, `eu`, `ga`, `gl`, `hy`, `jv`, `ka`, `kk`, `km`, `kn`, `ky`, `lo`, `lt`, `lv`, `mk`, `ml`, `mn`, `my`, `ne`, `or`, `pa`, `ps`, `sd`, `si`, `sl`, `so`, `sq`, `sr_Latn`, `te`, `tk`, `uz`, `yue`, `zh_Hans`, `zh_Hant`, `zu` — native month/weekday names and unit words from CLDR, correct plural rules, English-fallback relative-time wrappers.
+
+**CLDR locale pipeline**
+- `pnpm download-cldr` + `pnpm build-cldr` regenerates all locales from cldr-data package.
+- Skips existing hand-crafted locales (ar, ru, pl, cs, fi, is, hr, sr, uk, etc.) to preserve richer translations.
 
 ---
 

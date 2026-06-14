@@ -24,7 +24,10 @@ describe('package subpath exports', () => {
       'ko', 'tr', 'vi', 'pl', 'nl', 'th', 'ar', 'fa', 'ur', 'uk',
       'da', 'sv', 'nb', 'fi', 'is', 'hu', 'ro', 'bg', 'el',
       'cs', 'sk', 'hr', 'sr',
-      'ms', 'sw', 'he', 'ca', 'tl', 'gu', 'mr', 'ta'];
+      'ms', 'sw', 'he', 'ca', 'tl', 'gu', 'mr', 'ta',
+      'af', 'am', 'az', 'be', 'bs', 'cy', 'et', 'eu', 'fil', 'ga', 'gl',
+      'hy', 'jv', 'ka', 'kk', 'km', 'kn', 'ky', 'lo', 'lt', 'lv', 'mk',
+      'ml', 'mn', 'my', 'ne', 'pa', 'si', 'sl', 'sq', 'te', 'tk', 'uz', 'zu'];
     for (const name of names) {
       const mod = await import(`../dist/esm/locales/${name}.js`);
       assert.equal(mod[name].name, name, `locales/${name}`);
@@ -67,7 +70,7 @@ describe('CDN bundle', () => {
     assert.equal(typeof tuuru.LocalDate, 'function');
     assert.equal(tuuru.DateTime.fromISO('2024-06-09T10:30:00Z').toISO(), '2024-06-09T10:30:00.000Z');
     assert.equal(tuuru.LocalDate.fromISO('2024-06-09').format('MMMM D'), 'June 9');
-    // The raw IANA rule tables must stay out of the CDN bundle
-    assert.ok(code.length < 120 * 1024, `CDN bundle too large: ${(code.length / 1024).toFixed(0)}KB`);
+    // CDN bundle now includes all ~85 locales; IANA raw tables must still be excluded
+    assert.ok(code.length < 350 * 1024, `CDN bundle too large: ${(code.length / 1024).toFixed(0)}KB`);
   });
 });

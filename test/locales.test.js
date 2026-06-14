@@ -6,6 +6,11 @@ import {
   en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th, ar, fa, ur, uk,
   da, sv, nb, fi, is, hu, ro, bg, el, cs, sk, hr, sr,
   ms, sw, he, ca, tl, gu, mr, ta,
+  af, am, az, be, bs, cy, et, eu, fil, ga, gl,
+  hy, jv, ka, kk, km, kn, ky, lo, lt, lv, mk,
+  ml, mn, my, ne, pa, si, sl, sq, te, tk, uz, zu,
+  or as orLocale, as as asLocale, ps, sd, so, yue,
+  zh_Hans, zh_Hant, sr_Latn,
   it as itLocale
 } from '../dist/esm/index.js';
 
@@ -15,6 +20,11 @@ const ALL = {
   en, de, fr, zh, hi, es, bn, pt, ru, id, ja, ko, tr, vi, pl, nl, th, ar, fa, ur, uk,
   da, sv, nb, fi, is, hu, ro, bg, el, cs, sk, hr, sr,
   ms, sw, he, ca, tl, gu, mr, ta,
+  af, am, az, be, bs, cy, et, eu, fil, ga, gl,
+  hy, jv, ka, kk, km, kn, ky, lo, lt, lv, mk,
+  ml, mn, my, ne, pa, si, sl, sq, te, tk, uz, zu,
+  or: orLocale, as: asLocale, ps, sd, so, yue,
+  zh_Hans, zh_Hant, sr_Latn,
   it: itLocale
 };
 
@@ -23,7 +33,8 @@ const UNITS = ['second', 'minute', 'hour', 'day', 'month', 'year'];
 describe('locale structural completeness', () => {
   for (const [name, loc] of Object.entries(ALL)) {
     it(`${name} has all required fields`, () => {
-      assert.equal(loc.name, name);
+      // identifiers use underscore for BCP47 codes with hyphen (zh_Hans → zh-Hans)
+      assert.equal(loc.name, name.replace(/_/g, '-'));
       assert.equal(loc.months.length, 12);
       assert.equal(loc.monthsShort.length, 12);
       assert.equal(loc.weekdays.length, 7);

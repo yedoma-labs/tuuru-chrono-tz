@@ -1,345 +1,336 @@
 /**
- * Build locale files from CLDR data
+ * Build locale files from CLDR data.
  *
- * Converts CLDR JSON to tuuru locale TypeScript files with proper translations.
- * Usage: pnpm run download-cldr && pnpm run build-cldr
+ * Auto-discovers all base CLDR locales, skips existing hand-crafted ones,
+ * and generates TypeScript locale files with native translations.
+ *
+ * Prerequisites: pnpm run download-cldr
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
 const localesDir = path.join(__dirname, '..', 'src', 'locales');
 const dataDir = path.join(__dirname, '..', 'data');
 const cldrMainDir = path.join(dataDir, 'cldr-main');
 
-// Standard locale code mapping (BCP47)
-const LOCALE_CODES = [
-  'ar', 'bg', 'bn', 'ca', 'cs', 'da', 'de', 'el', 'es', 'fa', 'fi', 'fr',
-  'gu', 'he', 'hi', 'hr', 'hu', 'id', 'is', 'it', 'ja', 'ko', 'mr', 'ms',
-  'nb', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sr', 'sv', 'sw', 'ta', 'th',
-  'tl', 'tr', 'uk', 'ur', 'vi', 'zh'
-];
+// Locales with meaningfully distinct regional variants to include
+const KEEP_REGIONAL = new Set(['zh-Hans', 'zh-Hant', 'pt-BR', 'sr-Latn', 'nn']);
 
-// Plural form rules per language
-const PLURAL_RULES = {
-  'ar': { type: 'slavic', forms: 3 },
-  'bg': { type: 'simple', forms: 2 },
-  'bn': { type: 'simple', forms: 2 },
-  'ca': { type: 'simple', forms: 2 },
-  'cs': { type: 'slavic', forms: 3 },
-  'da': { type: 'simple', forms: 2 },
-  'de': { type: 'simple', forms: 2 },
-  'el': { type: 'simple', forms: 2 },
-  'es': { type: 'simple', forms: 2 },
-  'fa': { type: 'simple', forms: 2 },
-  'fi': { type: 'simple', forms: 2 },
-  'fr': { type: 'simple', forms: 2 },
-  'gu': { type: 'simple', forms: 2 },
-  'he': { type: 'simple', forms: 2 },
-  'hi': { type: 'simple', forms: 2 },
-  'hr': { type: 'slavic', forms: 3 },
-  'hu': { type: 'simple', forms: 2 },
-  'id': { type: 'simple', forms: 2 },
-  'is': { type: 'simple', forms: 2 },
-  'it': { type: 'simple', forms: 2 },
-  'ja': { type: 'simple', forms: 1 },
-  'ko': { type: 'simple', forms: 1 },
-  'mr': { type: 'simple', forms: 2 },
-  'ms': { type: 'simple', forms: 1 },
-  'nb': { type: 'simple', forms: 2 },
-  'nl': { type: 'simple', forms: 2 },
-  'pl': { type: 'slavic', forms: 3 },
-  'pt': { type: 'simple', forms: 2 },
-  'ro': { type: 'slavic', forms: 3 },
-  'ru': { type: 'slavic', forms: 3 },
-  'sk': { type: 'slavic', forms: 3 },
-  'sr': { type: 'slavic', forms: 3 },
-  'sv': { type: 'simple', forms: 2 },
-  'sw': { type: 'simple', forms: 2 },
-  'ta': { type: 'simple', forms: 2 },
-  'th': { type: 'simple', forms: 1 },
-  'tl': { type: 'simple', forms: 2 },
-  'tr': { type: 'simple', forms: 1 },
-  'uk': { type: 'slavic', forms: 3 },
-  'ur': { type: 'simple', forms: 2 },
-  'vi': { type: 'simple', forms: 1 },
-  'zh': { type: 'simple', forms: 1 }
-};
+// ─── PLURAL RULES ────────────────────────────────────────────────────────────
 
-function loadLocaleData(localeCode) {
-  const variants = [localeCode, localeCode.split('-')[0]];
-  for (const variant of variants) {
-    const localeFile = path.join(cldrMainDir, variant, 'ca-gregorian.json');
-    if (fs.existsSync(localeFile)) {
-      const content = fs.readFileSync(localeFile, 'utf-8');
-      return JSON.parse(content);
-    }
+function loadPluralRules() {
+  try {
+    const p = path.join(__dirname, '..', 'node_modules', 'cldr-data', 'supplemental', 'plurals.json');
+    return require(p).supplemental['plurals-type-cardinal'];
+  } catch {
+    return {};
   }
+}
+
+/**
+ * Derive a TypeScript plural function from CLDR rule categories.
+ * Returns a source string like `(n) => n === 1 ? 0 : 1`.
+ */
+function getPluralFn(locale, pluralRules) {
+  const rule = pluralRules[locale] || pluralRules[locale.split('-')[0]];
+  if (!rule) return '(n) => n === 1 ? 0 : 1';
+
+  const cats = Object.keys(rule)
+    .filter(k => k.startsWith('pluralRule-count-'))
+    .map(k => k.replace('pluralRule-count-', ''))
+    .filter(c => c !== 'other')
+    .sort();
+
+  if (cats.length === 0) return '() => 0';
+
+  if (cats.join('+') === 'one') {
+    return '(n) => n === 1 ? 0 : 1';
+  }
+
+  if (cats.join('+') === 'one+two') {
+    return '(n) => n === 1 ? 0 : n === 2 ? 1 : 2';
+  }
+
+  if (cats.includes('few') && cats.includes('one') && !cats.includes('two')) {
+    // Slavic-style: one / few / other
+    return '(n) => (n % 10 === 1 && n % 100 !== 11 ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2)';
+  }
+
+  if (cats.includes('few') && cats.includes('many') && cats.includes('one') && cats.includes('two') && cats.includes('zero')) {
+    // Arabic 6-form — simplified to binary for auto-generated
+    return '(n) => n === 1 ? 0 : 1';
+  }
+
+  if (cats.includes('few') && cats.includes('one') && cats.includes('two')) {
+    // Welsh / Breton etc — use 4-form simplified
+    return '(n) => n === 1 ? 0 : n === 2 ? 1 : n !== 8 && n !== 11 ? 2 : 3';
+  }
+
+  if (cats.includes('many') && cats.includes('one') && cats.includes('two')) {
+    // French-style many (fr, pt with 0) — binary enough
+    return '(n) => n === 0 || n === 1 ? 0 : 1';
+  }
+
+  if (cats.includes('one') && cats.includes('zero')) {
+    // Latvian-style
+    return '(n) => n % 10 === 1 && n % 100 !== 11 ? 0 : n % 10 === 0 || (n % 100 >= 11 && n % 100 <= 19) ? 2 : 1';
+  }
+
+  return '(n) => n === 1 ? 0 : 1';
+}
+
+// ─── CLDR EXTRACTION HELPERS ─────────────────────────────────────────────────
+
+function readJSON(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
+}
+
+function resolveLocaleDir(code) {
+  const direct = path.join(cldrMainDir, code);
+  if (fs.existsSync(direct)) return direct;
+  const base = code.split('-')[0];
+  const baseDir = path.join(cldrMainDir, base);
+  if (fs.existsSync(baseDir)) return baseDir;
   return null;
 }
 
-function loadUnitsData(localeCode) {
-  const variants = [localeCode, localeCode.split('-')[0]];
-  for (const variant of variants) {
-    const unitsFile = path.join(cldrMainDir, variant, 'units.json');
-    if (fs.existsSync(unitsFile)) {
-      const content = fs.readFileSync(unitsFile, 'utf-8');
-      return JSON.parse(content);
-    }
-  }
-  return null;
-}
-
-function extractMonths(data) {
-  const root = data.main[Object.keys(data.main)[0]];
-  const greg = root.dates.calendars.gregorian;
-  const months = greg.months || {};
-  const format = months.format || {};
-  const wide = format.wide || {};
-  const abbreviated = format.abbreviated || {};
-
-  const monthsWide = [];
-  const monthsShort = [];
+function extractMonths(greg) {
+  const wide = greg.months?.format?.wide || {};
+  const abbr = greg.months?.format?.abbreviated || {};
+  const wide12 = [];
+  const abbr12 = [];
   for (let i = 1; i <= 12; i++) {
-    monthsWide.push(wide[i] || `Month${i}`);
-    monthsShort.push(abbreviated[i] || `M${i}`);
+    wide12.push(wide[i] || `Month${i}`);
+    abbr12.push(abbr[i] || `M${i}`);
   }
-
-  return { monthsWide, monthsShort };
+  return { wide: wide12, abbr: abbr12 };
 }
 
-function extractWeekdays(data) {
-  const root = data.main[Object.keys(data.main)[0]];
-  const greg = root.dates.calendars.gregorian;
-  const days = greg.days || {};
-  const format = days.format || {};
-  const wide = format.wide || {};
-  const abbreviated = format.abbreviated || {};
-
-  // CLDR uses: sun, mon, tue, wed, thu, fri, sat
-  // We want Monday-first: mon, tue, wed, thu, fri, sat, sun
-  const dayNames = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-  const weekdaysWide = dayNames.map(day => wide[day] || `Day${day}`);
-  const weekdaysShort = dayNames.map(day => abbreviated[day] || `D${day.substring(0, 1)}`);
-
-  return { weekdaysWide, weekdaysShort };
+function extractWeekdays(greg) {
+  const wide = greg.days?.format?.wide || {};
+  const abbr = greg.days?.format?.abbreviated || {};
+  const order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  return {
+    wide: order.map(d => wide[d] || d),
+    abbr: order.map(d => abbr[d] || d.slice(0, 2)),
+  };
 }
 
-function extractMeridiem(data) {
-  const root = data.main[Object.keys(data.main)[0]];
-  const periods = root.dates.calendars.gregorian.dayPeriods?.format?.wide || {};
-
-  const am = periods.am || 'AM';
-  const pm = periods.pm || 'PM';
-
-  return { am, pm };
+function extractMeridiem(greg) {
+  const periods = greg.dayPeriods?.format?.wide || {};
+  return { am: periods.am || 'AM', pm: periods.pm || 'PM' };
 }
 
-function extractUnits(unitsData, unitType) {
-  if (!unitsData) return null;
-  const root = unitsData.main[Object.keys(unitsData.main)[0]];
-  const units = root.units?.long || {};
+/**
+ * Extract unit words from CLDR units.json.
+ * Returns { second: ['s1','s2'], minute: [...], ... }
+ * where s1 = singular form, s2 = plural form.
+ * Number of forms depends on the plural rule.
+ */
+function extractUnits(unitsData, locale, pluralCats) {
+  const rootKey = Object.keys(unitsData?.main || {})[0];
+  const long = unitsData?.main?.[rootKey]?.units?.long || {};
+  const keys = ['second', 'minute', 'hour', 'day', 'month', 'year'];
+  const result = {};
+  const forms = pluralCats === 0 ? 1 : pluralCats; // number of form slots
 
-  const results = {};
-  ['duration-second', 'duration-minute', 'duration-hour', 'duration-day', 'duration-month', 'duration-year'].forEach(key => {
-    if (units[key]) {
-      const unit = units[key];
-      // Try count-one first, fall back to count-other for languages without singular/plural distinction
-      const singular = unit['unitPattern-count-one'] || unit['unitPattern-count-other'] || `{0} ${key}`;
-      const plural = unit['unitPattern-count-other'] || `{0} ${key}s`;
-      // Remove the {0} placeholder (handles both "{0} word" and "word {0}")
-      const cleanSingular = singular.replace('{0}', '').replace(/^\s+|\s+$/g, '');
-      const cleanPlural = plural.replace('{0}', '').replace(/^\s+|\s+$/g, '');
-      results[key.replace('duration-', '')] = {
-        singular: cleanSingular || key,
-        plural: cleanPlural || (key + 's')
-      };
-    }
-  });
+  for (const k of keys) {
+    const entry = long[`duration-${k}`] || {};
+    const strip = (pat) => (pat || '').replace('{0}', '').replace(/^\s+|\s+$/g, '') || k;
+    const one = strip(entry['unitPattern-count-one'] || entry['unitPattern-count-other']);
+    const other = strip(entry['unitPattern-count-other'] || entry['unitPattern-count-one']);
+    const few = strip(entry['unitPattern-count-few'] || entry['unitPattern-count-other']);
 
-  return Object.keys(results).length > 0 ? results : null;
-}
-
-function generatePluralFunction(localeCode) {
-  const rule = PLURAL_RULES[localeCode];
-  if (!rule) return null;
-
-  if (rule.forms === 1) return null;
-
-  let fn = 'function plural(n: number): number {\n';
-
-  if (rule.type === 'slavic') {
-    fn += '  if (n % 10 === 1 && n % 100 !== 11) return 0;\n';
-    fn += '  if (n % 10 >= 2 && n % 10 <= 4 && !(n % 100 >= 12 && n % 100 <= 14)) return 1;\n';
-    fn += '  return 2;\n';
-  } else {
-    fn += '  return n === 1 ? 0 : 1;\n';
+    if (forms === 1) result[k] = [one];
+    else if (forms === 2) result[k] = [one, other];
+    else result[k] = [one, few, other]; // 3-form (slavic etc)
   }
-
-  fn += '}';
-  return fn;
+  return result;
 }
 
-function escape(str) {
-  return str.replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+/**
+ * Extract future/past wrapper templates from CLDR dateFields.json.
+ * CLDR pattern: "in {0} Sekunde" → our template: "in {0}"
+ * (we discard the unit suffix since our {0} = "N unit")
+ */
+function extractRelativeWrapper(fields, unit = 'minute') {
+  const f = fields[unit] || fields.second || {};
+  const futureOne = f['relativeTime-type-future']?.['relativeTimePattern-count-one'] || 'in {0}';
+  const pastOne = f['relativeTime-type-past']?.['relativeTimePattern-count-one'] || '{0} ago';
+
+  const wrap = (pattern) => {
+    const idx = pattern.indexOf('{0}');
+    if (idx === -1) return pattern;
+    const prefix = pattern.slice(0, idx);
+    const suffix = pattern.slice(idx + 3).trim();
+    // If prefix is empty, the number comes after the unit — keep suffix as wrapper
+    if (!prefix.trim()) return `{0} ${suffix}`.trim();
+    return `${prefix.trim()} {0}`.trim();
+  };
+
+  return { future: wrap(futureOne), past: wrap(pastOne) };
 }
 
-function generateLocaleFile(localeCode, data, unitsData) {
-  const { monthsWide, monthsShort } = extractMonths(data);
-  const { weekdaysWide, weekdaysShort } = extractWeekdays(data);
-  const { am, pm } = extractMeridiem(data);
-  const rule = PLURAL_RULES[localeCode];
-  const numForms = rule?.forms || 2;
-  const pluralFn = generatePluralFunction(localeCode);
-  const units = extractUnits(unitsData);
+// ─── LOCALE DISCOVERY ────────────────────────────────────────────────────────
 
-  let ts = `/**\n * ${localeCode.toUpperCase()} locale\n */\n\n`;
-  ts += `import type { Locale } from '../locale.js';\n\n`;
+function discoverLocales() {
+  const all = fs.readdirSync(cldrMainDir)
+    .filter(f => fs.statSync(path.join(cldrMainDir, f)).isDirectory())
+    .sort();
 
-  if (pluralFn) {
-    ts += pluralFn + '\n\n';
+  // Keep base locales (no hyphen) + allowlisted regional variants
+  return all.filter(code => !code.includes('-') || KEEP_REGIONAL.has(code));
+}
+
+// ─── CODE GENERATION ─────────────────────────────────────────────────────────
+
+function escape(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function formsList(forms) {
+  return `[${forms.map(f => `'${escape(f)}'`).join(', ')}]`;
+}
+
+function generateFile(code, months, weekdays, meridiem, units, future, past, today, tomorrow, yesterday, now, pluralFn) {
+  const identifier = code.replace(/-/g, '_');
+  const numForms = Object.values(units)[0]?.length || 2;
+
+  return `/**
+ * ${code} locale (auto-generated from CLDR)
+ */
+
+import type { Locale } from '../locale.js';
+
+export const ${identifier}: Locale = {
+  name: '${code}',
+  months: [
+    ${months.wide.map(m => `'${escape(m)}'`).join(', ')}
+  ],
+  monthsShort: [${months.abbr.map(m => `'${escape(m)}'`).join(', ')}],
+  weekdays: [${weekdays.wide.map(w => `'${escape(w)}'`).join(', ')}],
+  weekdaysShort: [${weekdays.abbr.map(w => `'${escape(w)}'`).join(', ')}],
+  meridiem: (hour) => hour < 12 ? '${escape(meridiem.am)}' : '${escape(meridiem.pm)}',
+  plural: ${pluralFn},
+  relativeTime: {
+    future: '${escape(future)}',
+    past: '${escape(past)}',
+    fewSeconds: 'a few seconds',
+    now: '${escape(now || 'now')}',
+    units: {
+      second: ${formsList(units.second)},
+      minute: ${formsList(units.minute)},
+      hour: ${formsList(units.hour)},
+      day: ${formsList(units.day)},
+      month: ${formsList(units.month)},
+      year: ${formsList(units.year)}
+    },
+    shortUnits: { second: 's', minute: 'm', hour: 'h', day: 'd', month: 'mo', year: 'y' }
+  },
+  calendar: {
+    today: '${escape(today || 'today')}',
+    tomorrow: '${escape(tomorrow || 'tomorrow')}',
+    yesterday: '${escape(yesterday || 'yesterday')}',
+    nextWeek: '{0}',
+    lastWeek: '{0}'
+  },
+  duration: {
+    units: {
+      second: ${formsList(units.second)},
+      minute: ${formsList(units.minute)},
+      hour: ${formsList(units.hour)},
+      day: ${formsList(units.day)},
+      month: ${formsList(units.month)},
+      year: ${formsList(units.year)}
+    },
+    shortUnits: { second: 's', minute: 'm', hour: 'h', day: 'd', month: 'mo', year: 'y' },
+    listSeparator: ', ',
+    zero: '0 ${escape((units.second[units.second.length - 1]) || 'seconds')}',
+    zeroShort: '0s'
   }
-
-  ts += `export const ${localeCode}: Locale = {\n`;
-  ts += `  name: '${localeCode}',\n`;
-
-  // Months
-  ts += `  months: [\n`;
-  monthsWide.forEach(m => ts += `    '${escape(m)}',\n`);
-  ts += `  ],\n`;
-
-  ts += `  monthsShort: [\n`;
-  monthsShort.forEach(m => ts += `    '${escape(m)}',\n`);
-  ts += `  ],\n`;
-
-  // Weekdays
-  ts += `  weekdays: [\n`;
-  weekdaysWide.forEach(w => ts += `    '${escape(w)}',\n`);
-  ts += `  ],\n`;
-
-  ts += `  weekdaysShort: [\n`;
-  weekdaysShort.forEach(w => ts += `    '${escape(w)}',\n`);
-  ts += `  ],\n`;
-
-  // Meridiem
-  ts += `  meridiem: (hour, lowercase) => {\n`;
-  ts += `    const m = hour < 12 ? '${escape(am)}' : '${escape(pm)}';\n`;
-  ts += `    return lowercase ? m.toLowerCase() : m;\n`;
-  ts += `  },\n`;
-
-  // Plural function
-  if (pluralFn) {
-    ts += `  plural,\n`;
-  }
-
-  // Relative time
-  ts += `  relativeTime: {\n`;
-  ts += `    future: 'in {0}',\n`;
-  ts += `    past: '{0} ago',\n`;
-  ts += `    fewSeconds: 'a few seconds',\n`;
-  ts += `    now: 'now',\n`;
-  ts += `    units: {\n`;
-
-  const unitNames = ['second', 'minute', 'hour', 'day', 'month', 'year'];
-  unitNames.forEach(u => {
-    const forms = [];
-    if (units && units[u]) {
-      forms.push(units[u].singular);
-      for (let i = 1; i < numForms; i++) {
-        forms.push(units[u].plural);
-      }
-    } else {
-      forms.push(u);
-      for (let i = 1; i < numForms; i++) {
-        forms.push(u + 's');
-      }
-    }
-    ts += `      ${u}: [${forms.map(f => `'${f}'`).join(', ')}],\n`;
-  });
-
-  ts += `    },\n`;
-  ts += `    shortUnits: { second: 's', minute: 'm', hour: 'h', day: 'd', month: 'mo', year: 'y' }\n`;
-  ts += `  },\n`;
-
-  ts += `  calendar: {\n`;
-  ts += `    today: 'today',\n`;
-  ts += `    tomorrow: 'tomorrow',\n`;
-  ts += `    yesterday: 'yesterday',\n`;
-  ts += `    nextWeek: 'next {0}',\n`;
-  ts += `    lastWeek: 'last {0}'\n`;
-  ts += `  },\n`;
-
-  ts += `  duration: {\n`;
-  ts += `    units: {\n`;
-  unitNames.forEach(u => {
-    const forms = [];
-    if (units && units[u]) {
-      forms.push(units[u].singular);
-      for (let i = 1; i < numForms; i++) {
-        forms.push(units[u].plural);
-      }
-    } else {
-      forms.push(u);
-      for (let i = 1; i < numForms; i++) {
-        forms.push(u + 's');
-      }
-    }
-    ts += `      ${u}: [${forms.map(f => `'${f}'`).join(', ')}],\n`;
-  });
-  ts += `    },\n`;
-  ts += `    shortUnits: { second: 's', minute: 'm', hour: 'h', day: 'd', month: 'mo', year: 'y' },\n`;
-  ts += `    listSeparator: ', ',\n`;
-  ts += `    zero: '0 seconds',\n`;
-  ts += `    zeroShort: '0s'\n`;
-  ts += `  }\n`;
-  ts += `};\n`;
-
-  return ts;
+};
+`;
 }
 
-async function buildLocales() {
+// ─── MAIN ─────────────────────────────────────────────────────────────────────
+
+function buildLocales() {
   if (!fs.existsSync(cldrMainDir)) {
     console.error(`CLDR data not found at ${cldrMainDir}`);
     console.error('Run: pnpm run download-cldr');
     process.exit(1);
   }
 
-  if (!fs.existsSync(localesDir)) {
-    fs.mkdirSync(localesDir, { recursive: true });
-  }
+  const existing = new Set(
+    fs.readdirSync(localesDir)
+      .filter(f => f.endsWith('.ts'))
+      .map(f => f.replace('.ts', ''))
+  );
+
+  const pluralRules = loadPluralRules();
+  const locales = discoverLocales();
 
   let generated = 0;
+  let skipped = 0;
   let failed = 0;
 
-  console.log(`Building locale files from CLDR...`);
+  console.log(`Found ${locales.length} base CLDR locales, ${existing.size} already exist`);
 
-  for (const code of LOCALE_CODES) {
+  for (const code of locales) {
+    const identifier = code.replace(/-/g, '_');
+    if (existing.has(identifier) || existing.has(code)) { skipped++; continue; }
+    // en is built into locale.ts; skip to avoid conflict
+    if (code === 'root' || code === 'en') { skipped++; continue; }
+
+    const locDir = resolveLocaleDir(code);
+    if (!locDir) { failed++; continue; }
+
+    const gregFile = path.join(locDir, 'ca-gregorian.json');
+    const unitsFile = path.join(locDir, 'units.json');
+    const dateFieldsFile = path.join(locDir, 'dateFields.json');
+
+    const gregData = readJSON(gregFile);
+    const unitsData = readJSON(unitsFile);
+    const dateFieldsData = readJSON(dateFieldsFile);
+
+    if (!gregData) { failed++; continue; }
+
     try {
-      const data = loadLocaleData(code);
-      if (!data) {
-        console.warn(`⚠ ${code} - no CLDR data`);
-        failed++;
-        continue;
-      }
+      const rootKey = Object.keys(gregData.main)[0];
+      const greg = gregData.main[rootKey]?.dates?.calendars?.gregorian;
+      if (!greg) { failed++; continue; }
 
-      const unitsData = loadUnitsData(code);
-      const ts = generateLocaleFile(code, data, unitsData);
-      const outFile = path.join(localesDir, `${code}.ts`);
-      fs.writeFileSync(outFile, ts);
-      console.log(`✓ ${code}`);
+      const months = extractMonths(greg);
+      const weekdays = extractWeekdays(greg);
+      const meridiem = extractMeridiem(greg);
+
+      const pluralFn = getPluralFn(code, pluralRules);
+      const cats = pluralFn.includes('2 ?') ? 3 : pluralFn === '() => 0' ? 1 : 2;
+      const units = extractUnits(unitsData, code, cats);
+
+      const fields = dateFieldsData?.main?.[rootKey]?.dates?.fields || {};
+      const { future, past } = extractRelativeWrapper(fields, 'minute');
+      const now = fields.second?.['relative-type-0'] || 'now';
+      const today = fields.day?.['relative-type-0'] || 'today';
+      const tomorrow = fields.day?.['relative-type-1'] || 'tomorrow';
+      const yesterday = fields.day?.['relative-type--1'] || 'yesterday';
+
+      const ts = generateFile(code, months, weekdays, meridiem, units, future, past, today, tomorrow, yesterday, now, pluralFn);
+      fs.writeFileSync(path.join(localesDir, `${identifier}.ts`), ts);
       generated++;
-    } catch (error) {
-      console.error(`✗ ${code}: ${error.message}`);
+    } catch (e) {
+      console.warn(`  ✗ ${code}: ${e.message}`);
       failed++;
     }
   }
 
-  console.log(`\nGenerated: ${generated}/${LOCALE_CODES.length}, Failed: ${failed}`);
+  console.log(`\n✓ Generated: ${generated}  Skipped (existing): ${skipped}  Failed: ${failed}`);
+  console.log(`Total locale files now: ${existing.size + generated}`);
 }
 
-buildLocales().catch(err => {
-  console.error('Error:', err.message);
-  process.exit(1);
-});
+buildLocales();
