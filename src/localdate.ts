@@ -196,6 +196,23 @@ export class LocalDate {
     return `${pad(this.#year, 4)}-${pad(this.#month, 2)}-${pad(this.#day, 2)}`;
   }
 
+  /**
+   * Format using `Intl.DateTimeFormat` for structurally correct locale output.
+   * Accepts an optional locale and `Intl.DateTimeFormatOptions`. Defaults to
+   * `dateStyle: 'long'` when no options are provided.
+   *
+   * @example
+   * ```typescript
+   * LocalDate.fromISO('2026-06-15').toLocaleString({ dateStyle: 'full' }, de)
+   * // "Montag, 15. Juni 2026"
+   * ```
+   */
+  toLocaleString(options?: Intl.DateTimeFormatOptions, locale?: Locale): string {
+    const tag = locale?.name.replace(/_/g, '-');
+    const date = new Date(Date.UTC(this.#year, this.#month - 1, this.#day));
+    return new Intl.DateTimeFormat(tag, { dateStyle: 'long', timeZone: 'UTC', ...options }).format(date);
+  }
+
   toString(): string { return this.toISO(); }
   toJSON(): string { return this.toISO(); }
   valueOf(): number { return this.#ordinal; }

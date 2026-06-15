@@ -101,6 +101,23 @@ export interface Locale {
     /** Short-form phrase for a zero duration */
     zeroShort: string;
   };
+
+  /**
+   * Format-string patterns for locale-aware date rendering via `formatLocalized()`.
+   * When present, `formatLocalized(style)` uses `DateTime.format()` with the
+   * pattern instead of falling back to `Intl.DateTimeFormat`. Useful for full
+   * control over punctuation and token ordering without relying on `Intl` output.
+   *
+   * @example
+   * // German: "15. Juni 2026", "Montag, 15. Juni 2026"
+   * dateFormats: { short: 'D.M.YYYY', medium: 'D. MMM YYYY', long: 'D. MMMM YYYY', full: 'dddd, D. MMMM YYYY' }
+   */
+  dateFormats?: {
+    short: string;
+    medium: string;
+    long: string;
+    full: string;
+  };
 }
 
 /**

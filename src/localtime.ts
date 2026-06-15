@@ -122,6 +122,23 @@ export class LocalTime {
     return this.millisecond === 0 ? base : `${base}.${pad(this.millisecond, 3)}`;
   }
 
+  /**
+   * Format using `Intl.DateTimeFormat` for structurally correct locale output.
+   * Accepts an optional locale and `Intl.DateTimeFormatOptions`. Defaults to
+   * `timeStyle: 'medium'` when no options are provided.
+   *
+   * @example
+   * ```typescript
+   * LocalTime.of(14, 30).toLocaleString({ timeStyle: 'short' }, de) // "14:30"
+   * LocalTime.of(14, 30).toLocaleString({ timeStyle: 'short' }, ar) // "٢:٣٠ م"
+   * ```
+   */
+  toLocaleString(options?: Intl.DateTimeFormatOptions, locale?: Locale): string {
+    const tag = locale?.name.replace(/_/g, '-');
+    const date = new Date(Date.UTC(1970, 0, 1, this.hour, this.minute, this.second, this.millisecond));
+    return new Intl.DateTimeFormat(tag, { timeStyle: 'medium', timeZone: 'UTC', ...options }).format(date);
+  }
+
   toString(): string { return this.toISO(); }
   toJSON(): string { return this.toISO(); }
   valueOf(): number { return this.#ms; }

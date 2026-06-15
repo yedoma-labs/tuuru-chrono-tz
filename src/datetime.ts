@@ -905,6 +905,54 @@ export class DateTime {
     return new Date(this.#timestamp);
   }
 
+  /**
+   * Format using `Intl.DateTimeFormat`, honoring the instance's locale and
+   * timezone. The output is structurally correct for the locale — including
+   * punctuation and field ordering — unlike `format()`, which only localises
+   * month/weekday names.
+   *
+   * @example
+   * ```typescript
+   * dt.setLocale(de).toLocaleString({ dateStyle: 'long' })  // "15. Juni 2026"
+   * dt.setLocale(ja).toLocaleString({ dateStyle: 'full' })  // "2026年6月15日月曜日"
+   * dt.setLocale(ar).toLocaleString({ timeStyle: 'short' }) // "١٠:٣٠ ص"
+   * ```
+   */
+  toLocaleString(options?: Intl.DateTimeFormatOptions): string {
+    const tag = this.#effectiveLocale.name.replace(/_/g, '-');
+    return new Intl.DateTimeFormat(tag, { timeZone: this.#timezone, ...options }).format(this.toDate());
+  }
+
+  /** `Intl`-formatted date only (`dateStyle: 'long'` by default). */
+  toLocaleDateString(options?: Intl.DateTimeFormatOptions): string {
+    return this.toLocaleString({ dateStyle: 'long', ...options });
+  }
+
+  /** `Intl`-formatted time only (`timeStyle: 'medium'` by default). */
+  toLocaleTimeString(options?: Intl.DateTimeFormatOptions): string {
+    return this.toLocaleString({ timeStyle: 'medium', ...options });
+  }
+
+  /**
+   * Format using the locale's `dateFormats` patterns (if defined) or fall
+   * back to `Intl.DateTimeFormat` with the matching `dateStyle`.
+   *
+   * @example
+   * ```typescript
+   * // If the de locale defines dateFormats.long = 'D. MMMM YYYY':
+   * dt.setLocale(de).formatLocalized('long') // "15. Juni 2026"
+   * // Otherwise falls back to Intl:
+   * dt.setLocale(de).formatLocalized('long') // "15. Juni 2026" (from Intl)
+   * ```
+   */
+  formatLocalized(style: 'short' | 'medium' | 'long' | 'full'): string {
+    const locale = this.#effectiveLocale;
+    if (locale.dateFormats?.[style]) {
+      return this.format(locale.dateFormats[style]);
+    }
+    return this.toLocaleString({ dateStyle: style });
+  }
+
   // =========================================================================
   // RELATIVE TIME
   // =========================================================================
