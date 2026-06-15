@@ -85,5 +85,11 @@ export const ru: Locale = {
     listSeparator: ', ',
     zero: '0 секунд',
     zeroShort: '0с'
+  },
+  dateFormats: {
+    short:  'DD.MM.YYYY',
+    medium: 'D MMM YYYY г.',
+    long:   'D MMMM YYYY г.',
+    full:   'dddd, D MMMM YYYY г.'
   }
 };

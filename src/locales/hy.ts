@@ -49,5 +49,11 @@ export const hy: Locale = {
     listSeparator: ', ',
     zero: '0 վայրկյան',
     zeroShort: '0s'
+  },
+  dateFormats: {
+    short:  'DD.MM.YYYY',
+    medium: 'D MMM YYYY թ.',
+    long:   'D MMMM YYYY թ.',
+    full:   'dddd, D MMMM YYYY թ.'
   }
 };

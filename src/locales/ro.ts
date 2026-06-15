@@ -59,5 +59,11 @@ export const ro: Locale = {
     listSeparator: ', ',
     zero: '0 secunde',
     zeroShort: '0sec'
+  },
+  dateFormats: {
+    short:  'DD.MM.YYYY',
+    medium: 'D MMM YYYY',
+    long:   'D MMMM YYYY',
+    full:   'dddd, D MMMM YYYY'
   }
 };

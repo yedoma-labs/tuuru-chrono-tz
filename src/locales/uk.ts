@@ -75,5 +75,11 @@ export const uk: Locale = {
     listSeparator: ', ',
     zero: '0 секунд',
     zeroShort: '0с'
+  },
+  dateFormats: {
+    short:  'DD.MM.YYYY',
+    medium: 'D MMM YYYY р.',
+    long:   'D MMMM YYYY р.',
+    full:   'dddd, D MMMM YYYY р.'
   }
 };

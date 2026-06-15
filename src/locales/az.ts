@@ -49,5 +49,11 @@ export const az: Locale = {
     listSeparator: ', ',
     zero: '0 saniyə',
     zeroShort: '0s'
+  },
+  dateFormats: {
+    short:  'DD.MM.YYYY',
+    medium: 'D MMM YYYY',
+    long:   'D MMMM YYYY',
+    full:   'D MMMM YYYY, dddd'
   }
 };

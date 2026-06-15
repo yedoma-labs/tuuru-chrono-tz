@@ -49,5 +49,11 @@ export const kk: Locale = {
     listSeparator: ', ',
     zero: '0 секунд',
     zeroShort: '0s'
+  },
+  dateFormats: {
+    short:  'DD.MM.YYYY',
+    medium: 'D MMM YYYY',
+    long:   'D MMMM YYYY',
+    full:   'D MMMM YYYY, dddd'
   }
 };

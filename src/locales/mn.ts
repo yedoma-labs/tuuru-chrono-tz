@@ -49,5 +49,11 @@ export const mn: Locale = {
     listSeparator: ', ',
     zero: '0 секунд',
     zeroShort: '0s'
+  },
+  dateFormats: {
+    short:  'YYYY.MM.DD',
+    medium: 'YYYY оны MMM',
+    long:   'YYYY оны MM сарын D',
+    full:   'dddd, YYYY оны MM сарын D'
   }
 };

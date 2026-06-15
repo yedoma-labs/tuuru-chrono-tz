@@ -51,5 +51,11 @@ export const vi: Locale = {
     listSeparator: ', ',
     zero: '0 giây',
     zeroShort: '0 giây'
+  },
+  dateFormats: {
+    short:  'DD/MM/YYYY',
+    medium: 'D MMM YYYY',
+    long:   'D MMMM YYYY',
+    full:   'dddd, D MMMM YYYY'
   }
 };

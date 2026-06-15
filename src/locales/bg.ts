@@ -51,5 +51,11 @@ export const bg: Locale = {
     listSeparator: ', ',
     zero: '0 секунди',
     zeroShort: '0сек'
+  },
+  dateFormats: {
+    short:  'DD.MM.YYYY',
+    medium: 'D MMM YYYY г.',
+    long:   'D MMMM YYYY г.',
+    full:   'dddd, D MMMM YYYY г.'
   }
 };

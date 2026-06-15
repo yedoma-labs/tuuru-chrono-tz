@@ -52,5 +52,11 @@ export const bn: Locale = {
     listSeparator: ', ',
     zero: '0 সেকেন্ড',
     zeroShort: '0সেকেন্ড'
+  },
+  dateFormats: {
+    short:  'DD/MM/YYYY',
+    medium: 'D MMM YYYY',
+    long:   'D MMMM YYYY',
+    full:   'dddd, D MMMM YYYY'
   }
 };

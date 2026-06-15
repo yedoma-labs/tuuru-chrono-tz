@@ -49,5 +49,11 @@ export const sr_Latn: Locale = {
     listSeparator: ', ',
     zero: '0 sekundi',
     zeroShort: '0s'
+  },
+  dateFormats: {
+    short:  'DD.MM.YYYY',
+    medium: 'D. MMM YYYY.',
+    long:   'D. MMMM YYYY.',
+    full:   'dddd, D. MMMM YYYY.'
   }
 };

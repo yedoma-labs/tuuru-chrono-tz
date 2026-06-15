@@ -49,5 +49,11 @@ export const zh_Hans: Locale = {
     listSeparator: ', ',
     zero: '0 秒钟',
     zeroShort: '0s'
+  },
+  dateFormats: {
+    short:  'YYYY/MM/DD',
+    medium: 'YYYY年M月D日',
+    long:   'YYYY年M月D日',
+    full:   'YYYY年M月D日 dddd'
   }
 };

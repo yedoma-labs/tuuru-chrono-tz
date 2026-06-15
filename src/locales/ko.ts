@@ -50,5 +50,11 @@ export const ko: Locale = {
     listSeparator: ' ',
     zero: '0초',
     zeroShort: '0초'
+  },
+  dateFormats: {
+    short:  'YYYY/MM/DD',
+    medium: 'YYYY년 M월 D일',
+    long:   'YYYY년 M월 D일',
+    full:   'YYYY년 M월 D일 dddd'
   }
 };

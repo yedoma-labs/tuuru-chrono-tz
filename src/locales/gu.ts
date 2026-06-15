@@ -51,5 +51,11 @@ export const gu: Locale = {
     listSeparator: ', ',
     zero: '0 સેકન્ડ',
     zeroShort: '0સે.'
+  },
+  dateFormats: {
+    short:  'DD/MM/YYYY',
+    medium: 'D MMM YYYY',
+    long:   'D MMMM YYYY',
+    full:   'dddd, D MMMM YYYY'
   }
 };

@@ -69,5 +69,11 @@ export const ar: Locale = {
     listSeparator: '، ',
     zero: '0 ثانية',
     zeroShort: '0ث'
+  },
+  dateFormats: {
+    short:  'DD/MM/YYYY',
+    medium: 'D MMM YYYY',
+    long:   'D MMMM YYYY',
+    full:   'dddd، D MMMM YYYY'
   }
 };

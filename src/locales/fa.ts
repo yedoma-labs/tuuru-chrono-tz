@@ -56,5 +56,11 @@ export const fa: Locale = {
     listSeparator: '، ',
     zero: '0 ثانیه',
     zeroShort: '0 ثانیه'
+  },
+  dateFormats: {
+    short:  'YYYY/MM/DD',
+    medium: 'D MMM YYYY',
+    long:   'D MMMM YYYY',
+    full:   'dddd D MMMM YYYY'
   }
 };

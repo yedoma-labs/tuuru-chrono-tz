@@ -48,5 +48,11 @@ export const el: Locale = {
     listSeparator: ', ',
     zero: '0 δευτερόλεπτα',
     zeroShort: '0δευτ'
+  },
+  dateFormats: {
+    short:  'DD/MM/YYYY',
+    medium: 'D MMM YYYY',
+    long:   'D MMMM YYYY',
+    full:   'dddd, D MMMM YYYY'
   }
 };

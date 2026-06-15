@@ -50,5 +50,11 @@ export const ja: Locale = {
     listSeparator: '',
     zero: '0秒',
     zeroShort: '0秒'
+  },
+  dateFormats: {
+    short:  'YYYY/MM/DD',
+    medium: 'YYYY年M月D日',
+    long:   'YYYY年M月D日',
+    full:   'YYYY年M月D日(ddd)'
   }
 };

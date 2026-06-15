@@ -54,5 +54,11 @@ export const ur: Locale = {
     listSeparator: '، ',
     zero: '0 سیکنڈ',
     zeroShort: '0 سیکنڈ'
+  },
+  dateFormats: {
+    short:  'DD/MM/YYYY',
+    medium: 'D MMM YYYY',
+    long:   'D MMMM YYYY',
+    full:   'dddd، D MMMM YYYY'
   }
 };

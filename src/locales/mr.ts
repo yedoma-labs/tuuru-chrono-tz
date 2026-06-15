@@ -51,5 +51,11 @@ export const mr: Locale = {
     listSeparator: ', ',
     zero: '0 सेकंद',
     zeroShort: '0से.'
+  },
+  dateFormats: {
+    short:  'DD/MM/YYYY',
+    medium: 'D MMM YYYY',
+    long:   'D MMMM YYYY',
+    full:   'dddd, D MMMM YYYY'
   }
 };

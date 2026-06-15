@@ -49,5 +49,11 @@ export const lv: Locale = {
     listSeparator: ', ',
     zero: '0 sekundes',
     zeroShort: '0s'
+  },
+  dateFormats: {
+    short:  'DD.MM.YYYY',
+    medium: 'D. MMM, YYYY. [g.]',
+    long:   'YYYY. [gada] D. MMMM',
+    full:   'dddd, YYYY. [gada] D. MMMM'
   }
 };
