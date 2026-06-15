@@ -4,6 +4,18 @@ All notable changes to `@yedoma-labs/tuuru-chrono-tz` follow [Keep a Changelog](
 
 ---
 
+## [0.3.1] — 2026-06-15
+
+### Added
+
+**`dateFormats` on all 86 locales**
+- Every locale object now has a `dateFormats: { short, medium, long, full }` field with locale-correct format-string patterns.
+- `formatLocalized(style)` no longer relies on `Intl.DateTimeFormat` for date-only output — the library's own `format()` engine handles it using each locale's translated month/weekday names. Fixes silent fallback to system locale on runtimes with partial ICU data (`tk`, `am`, `cy`, `lo`, `jv`, `so`, `zu`, and others).
+- Token conflicts in Lithuanian (`m.`/`d.` abbreviations) and Latvian (`gada`) escaped with `[...]` bracket syntax.
+- CJK locales use native patterns (`YYYY年M月D日`, `YYYY년 M월 D일`).
+
+---
+
 ## [0.3.0] — 2026-06-15
 
 ### Added
@@ -104,6 +116,7 @@ First public release. Full feature set documented in [README](./README.md).
 
 ---
 
+[0.3.1]: https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yedoma-labs/tuuru-chrono-tz/releases/tag/v0.1.0

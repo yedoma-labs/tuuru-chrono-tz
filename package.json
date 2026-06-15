@@ -1,6 +1,6 @@
 {
   "name": "@yedoma-labs/tuuru-chrono-tz",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "TypeScript-first date/time library with built-in IANA timezone support. Immutable, zero-deps, <20KB.",
   "type": "module",
   "sideEffects": false,
