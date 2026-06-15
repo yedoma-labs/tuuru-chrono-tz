@@ -1,5 +1,10 @@
 # 🌍 tuuru-chrono-tz
 
+<picture>
+  <source media="(max-width: 640px)" srcset="https://raw.githubusercontent.com/yedoma-labs/assets/main/resized/banner-resized-mobile.png">
+  <img src="https://raw.githubusercontent.com/yedoma-labs/assets/main/resized/banner-resized.png" alt="Project Header">
+</picture>
+
 > **Time zones for the whole world**
 
 TypeScript-first date/time library with **built-in IANA timezone support**. No external packages. No moment-timezone. Just immutable, tree-shakeable time handling that works everywhere.
