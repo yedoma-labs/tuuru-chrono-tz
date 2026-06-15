@@ -4,6 +4,23 @@ All notable changes to `@yedoma-labs/tuuru-chrono-tz` follow [Keep a Changelog](
 
 ---
 
+## [0.3.0] — 2026-06-15
+
+### Added
+
+**Locale-aware formatting**
+- `DateTime.toLocaleString(options?)` — `Intl.DateTimeFormat`-backed output honoring the instance's locale and timezone. Produces structurally correct punctuation and field ordering (e.g. `"15. Juni 2026"` for German) without hardcoding format strings.
+- `DateTime.toLocaleDateString(options?)` — `dateStyle: 'long'` preset.
+- `DateTime.toLocaleTimeString(options?)` — `timeStyle: 'medium'` preset.
+- `DateTime.formatLocalized(style)` — `'short' | 'medium' | 'long' | 'full'`. Uses `locale.dateFormats[style]` when defined; falls back to `Intl.DateTimeFormat({ dateStyle: style })`.
+- `LocalDate.toLocaleString(options?, locale?)` — same approach, UTC-anchored.
+- `LocalTime.toLocaleString(options?, locale?)` — same approach, UTC-anchored.
+
+**Locale interface extension**
+- `Locale.dateFormats?: { short, medium, long, full }` — optional format-string patterns for `formatLocalized()`. No built-in locales define it; fully opt-in for custom locales.
+
+---
+
 ## [0.2.0] — 2026-06-14
 
 ### Added
@@ -87,5 +104,6 @@ First public release. Full feature set documented in [README](./README.md).
 
 ---
 
+[0.3.0]: https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yedoma-labs/tuuru-chrono-tz/releases/tag/v0.1.0
