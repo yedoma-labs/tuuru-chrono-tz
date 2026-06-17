@@ -27,7 +27,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "packageManager": "pnpm@9.1.0",
+  "packageManager": "pnpm@11.7.0",
   "scripts": {
     "download-iana": "node scripts/download-iana.js",
     "parse-iana": "node scripts/parse-iana.js",
