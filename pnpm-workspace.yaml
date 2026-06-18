@@ -1,0 +1,3 @@
+allowBuilds:
+  cldr-data: true
+  esbuild: true
