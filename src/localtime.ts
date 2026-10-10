@@ -30,10 +30,12 @@ export class LocalTime {
     const m = ISO_TIME.exec(iso);
     if (!m) throw new Error(`Invalid ISO time: "${iso}"`);
     return LocalTime.of(
+      // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
       parseInt(m[1]!, 10),
+      // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
       parseInt(m[2]!, 10),
       m[3] !== undefined ? parseInt(m[3], 10) : 0,
-      m[4] !== undefined ? parseInt(m[4].padEnd(3, '0'), 10) : 0
+      m[4] !== undefined ? parseInt(m[4].padEnd(3, '0'), 10) : 0,
     );
   }
 
@@ -44,11 +46,17 @@ export class LocalTime {
     if (hour < 0 || hour > 23) throw new Error(`Invalid hour: ${hour}`);
     if (minute < 0 || minute > 59) throw new Error(`Invalid minute: ${minute}`);
     if (second < 0 || second > 59) throw new Error(`Invalid second: ${second}`);
-    if (millisecond < 0 || millisecond > 999) throw new Error(`Invalid millisecond: ${millisecond}`);
+    if (millisecond < 0 || millisecond > 999)
+      throw new Error(`Invalid millisecond: ${millisecond}`);
     return new LocalTime(((hour * 60 + minute) * 60 + second) * 1000 + millisecond);
   }
 
-  static fromObject(obj: { hour?: number; minute?: number; second?: number; millisecond?: number }): LocalTime {
+  static fromObject(obj: {
+    hour?: number;
+    minute?: number;
+    second?: number;
+    millisecond?: number;
+  }): LocalTime {
     return LocalTime.of(obj.hour ?? 0, obj.minute ?? 0, obj.second ?? 0, obj.millisecond ?? 0);
   }
 
@@ -64,27 +72,47 @@ export class LocalTime {
 
   // ---- getters ------------------------------------------------------------
 
-  get hour(): number { return Math.floor(this.#ms / 3600000); }
-  get minute(): number { return Math.floor(this.#ms / 60000) % 60; }
-  get second(): number { return Math.floor(this.#ms / 1000) % 60; }
-  get millisecond(): number { return this.#ms % 1000; }
+  get hour(): number {
+    return Math.floor(this.#ms / 3600000);
+  }
+  get minute(): number {
+    return Math.floor(this.#ms / 60000) % 60;
+  }
+  get second(): number {
+    return Math.floor(this.#ms / 1000) % 60;
+  }
+  get millisecond(): number {
+    return this.#ms % 1000;
+  }
 
   /** Milliseconds since midnight. */
-  get millisecondOfDay(): number { return this.#ms; }
+  get millisecondOfDay(): number {
+    return this.#ms;
+  }
 
   // ---- arithmetic (wraps within the day) ----------------------------------
 
-  add(duration: { hours?: number; minutes?: number; seconds?: number; milliseconds?: number }): LocalTime {
+  add(duration: {
+    hours?: number;
+    minutes?: number;
+    seconds?: number;
+    milliseconds?: number;
+  }): LocalTime {
     const delta =
       (duration.hours ?? 0) * 3600000 +
       (duration.minutes ?? 0) * 60000 +
       (duration.seconds ?? 0) * 1000 +
       (duration.milliseconds ?? 0);
     if (!Number.isFinite(delta)) throw new Error('LocalTime.add requires finite values');
-    return new LocalTime(((this.#ms + delta) % DAY_MS + DAY_MS) % DAY_MS);
+    return new LocalTime((((this.#ms + delta) % DAY_MS) + DAY_MS) % DAY_MS);
   }
 
-  subtract(duration: { hours?: number; minutes?: number; seconds?: number; milliseconds?: number }): LocalTime {
+  subtract(duration: {
+    hours?: number;
+    minutes?: number;
+    seconds?: number;
+    milliseconds?: number;
+  }): LocalTime {
     const neg: Record<string, number> = {};
     for (const [k, v] of Object.entries(duration)) if (v !== undefined) neg[k] = -v;
     return this.add(neg);
@@ -92,11 +120,21 @@ export class LocalTime {
 
   // ---- comparison ---------------------------------------------------------
 
-  equals(other: LocalTime): boolean { return this.#ms === other.#ms; }
-  isBefore(other: LocalTime): boolean { return this.#ms < other.#ms; }
-  isAfter(other: LocalTime): boolean { return this.#ms > other.#ms; }
-  isSameOrBefore(other: LocalTime): boolean { return this.#ms <= other.#ms; }
-  isSameOrAfter(other: LocalTime): boolean { return this.#ms >= other.#ms; }
+  equals(other: LocalTime): boolean {
+    return this.#ms === other.#ms;
+  }
+  isBefore(other: LocalTime): boolean {
+    return this.#ms < other.#ms;
+  }
+  isAfter(other: LocalTime): boolean {
+    return this.#ms > other.#ms;
+  }
+  isSameOrBefore(other: LocalTime): boolean {
+    return this.#ms <= other.#ms;
+  }
+  isSameOrAfter(other: LocalTime): boolean {
+    return this.#ms >= other.#ms;
+  }
   isBetween(start: LocalTime, end: LocalTime): boolean {
     return this.#ms >= start.#ms && this.#ms <= end.#ms;
   }
@@ -111,8 +149,13 @@ export class LocalTime {
   /** Format with time tokens (delegates to DateTime on an arbitrary date). */
   format(pattern: string, options?: { locale?: Locale }): string {
     return DateTime.fromObject({
-      year: 2000, month: 1, day: 1,
-      hour: this.hour, minute: this.minute, second: this.second, millisecond: this.millisecond
+      year: 2000,
+      month: 1,
+      day: 1,
+      hour: this.hour,
+      minute: this.minute,
+      second: this.second,
+      millisecond: this.millisecond,
     }).format(pattern, options);
   }
 
@@ -135,11 +178,23 @@ export class LocalTime {
    */
   toLocaleString(options?: Intl.DateTimeFormatOptions, locale?: Locale): string {
     const tag = locale?.name.replace(/_/g, '-');
-    const date = new Date(Date.UTC(1970, 0, 1, this.hour, this.minute, this.second, this.millisecond));
-    return new Intl.DateTimeFormat(tag, { timeStyle: 'medium', timeZone: 'UTC', ...options }).format(date);
+    const date = new Date(
+      Date.UTC(1970, 0, 1, this.hour, this.minute, this.second, this.millisecond),
+    );
+    return new Intl.DateTimeFormat(tag, {
+      timeStyle: 'medium',
+      timeZone: 'UTC',
+      ...options,
+    }).format(date);
   }
 
-  toString(): string { return this.toISO(); }
-  toJSON(): string { return this.toISO(); }
-  valueOf(): number { return this.#ms; }
+  toString(): string {
+    return this.toISO();
+  }
+  toJSON(): string {
+    return this.toISO();
+  }
+  valueOf(): number {
+    return this.#ms;
+  }
 }

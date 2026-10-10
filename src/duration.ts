@@ -1,16 +1,16 @@
 /**
  * Duration class
- * 
+ *
  * Immutable duration with formatting support.
  */
 
-import type { DurationObject, HumanizeOptions } from './types.js';
-import { getDefaultLocale, pickForm } from './locale.js';
 import type { RelativeUnit } from './locale.js';
+import { getDefaultLocale, pickForm } from './locale.js';
+import type { DurationObject, HumanizeOptions } from './types.js';
 
 /**
  * Immutable Duration class
- * 
+ *
  * @example
  * ```typescript
  * const duration = Duration.fromObject({ hours: 2, minutes: 30 });
@@ -20,25 +20,25 @@ import type { RelativeUnit } from './locale.js';
  */
 export class Duration {
   readonly #milliseconds: number;
-  
+
   private constructor(ms: number) {
     this.#milliseconds = ms;
   }
-  
+
   // =========================================================================
   // FACTORY METHODS
   // =========================================================================
-  
+
   /**
    * Create duration from milliseconds
    */
   static fromMilliseconds(ms: number): Duration {
     return new Duration(ms);
   }
-  
+
   /**
    * Create duration from object
-   * 
+   *
    * @example
    * ```typescript
    * Duration.fromObject({ hours: 2, minutes: 30 });
@@ -47,14 +47,14 @@ export class Duration {
    */
   static fromObject(obj: DurationObject): Duration {
     let ms = 0;
-    
+
     if (obj.milliseconds) ms += obj.milliseconds;
     if (obj.seconds) ms += obj.seconds * 1000;
     if (obj.minutes) ms += obj.minutes * 60 * 1000;
     if (obj.hours) ms += obj.hours * 60 * 60 * 1000;
     if (obj.days) ms += obj.days * 24 * 60 * 60 * 1000;
     if (obj.weeks) ms += obj.weeks * 7 * 24 * 60 * 60 * 1000;
-    
+
     // Months/years use fixed approximations (30 days / 365 days).
     // For calendar-accurate month/year math use DateTime.add() instead.
     if (obj.months) ms += obj.months * 30 * 24 * 60 * 60 * 1000;
@@ -84,8 +84,9 @@ export class Duration {
     }
 
     const match =
-      /^(-)?P(?:(\d+(?:\.\d+)?)W|(?:(\d+(?:\.\d+)?)Y)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?)$/
-        .exec(iso);
+      /^(-)?P(?:(\d+(?:\.\d+)?)W|(?:(\d+(?:\.\d+)?)Y)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?)$/.exec(
+        iso,
+      );
 
     if (!match) {
       throw new Error(`Invalid ISO 8601 duration: "${iso}"`);
@@ -94,13 +95,19 @@ export class Duration {
     const [, sign, weeks, years, months, days, hours, minutes, seconds] = match;
 
     // "P" or "PT" alone (no components) is not a valid duration
-    if (weeks === undefined && years === undefined && months === undefined &&
-        days === undefined && hours === undefined && minutes === undefined &&
-        seconds === undefined) {
+    if (
+      weeks === undefined &&
+      years === undefined &&
+      months === undefined &&
+      days === undefined &&
+      hours === undefined &&
+      minutes === undefined &&
+      seconds === undefined
+    ) {
       throw new Error(`Invalid ISO 8601 duration: "${iso}" has no components`);
     }
 
-    const num = (v: string | undefined): number => v === undefined ? 0 : parseFloat(v);
+    const num = (v: string | undefined): number => (v === undefined ? 0 : parseFloat(v));
 
     const ms =
       num(weeks) * 7 * 86400000 +
@@ -117,13 +124,21 @@ export class Duration {
   // =========================================================================
   // GETTERS
   // =========================================================================
-  
+
   /**
    * Cascading component breakdown (years 365d, months 30d approximations).
    * Each component is the remainder after larger units are consumed, so
    * years*365d + months*30d + days*1d + ... always equals the total.
    */
-  #components(): { years: number; months: number; days: number; hours: number; minutes: number; seconds: number; milliseconds: number } {
+  #components(): {
+    years: number;
+    months: number;
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+    milliseconds: number;
+  } {
     const sign = this.#milliseconds < 0 ? -1 : 1;
     let rest = Math.abs(this.#milliseconds);
 
@@ -147,7 +162,7 @@ export class Duration {
       hours: sign * hours,
       minutes: sign * minutes,
       seconds: sign * seconds,
-      milliseconds: sign * rest
+      milliseconds: sign * rest,
     };
   }
 
@@ -178,7 +193,7 @@ export class Duration {
   get milliseconds(): number {
     return this.#components().milliseconds;
   }
-  
+
   get totalMilliseconds(): number {
     return this.#milliseconds;
   }
@@ -202,19 +217,19 @@ export class Duration {
   // =========================================================================
   // FORMATTING
   // =========================================================================
-  
+
   /**
    * Format as human-readable string
-   * 
+   *
    * @example
    * ```typescript
-   * duration.humanize(); 
+   * duration.humanize();
    * // "2 hours, 30 minutes"
-   * 
-   * duration.humanize({ short: true }); 
+   *
+   * duration.humanize({ short: true });
    * // "2h 30m"
-   * 
-   * duration.humanize({ largest: 1 }); 
+   *
+   * duration.humanize({ largest: 1 });
    * // "2 hours"
    * ```
    */
@@ -235,16 +250,18 @@ export class Duration {
       ['day', d.days],
       ['hour', d.hours],
       ['minute', d.minutes],
-      ['second', d.seconds]
+      ['second', d.seconds],
     ];
 
     for (const [unit, value] of components) {
       if (value > 0 && parts.length < largest) {
-        parts.push(short
-          ? `${value}${loc.shortUnits[unit]}`
-          : locale.formatCount
-            ? locale.formatCount(value, loc.units[unit], unit)
-            : `${value}${sep}${pickForm(loc.units[unit], value, locale)}`);
+        parts.push(
+          short
+            ? `${value}${loc.shortUnits[unit]}`
+            : locale.formatCount
+              ? locale.formatCount(value, loc.units[unit], unit)
+              : `${value}${sep}${pickForm(loc.units[unit], value, locale)}`,
+        );
       }
     }
 
@@ -254,10 +271,10 @@ export class Duration {
 
     return short ? parts.join(' ') : parts.join(loc.listSeparator);
   }
-  
+
   /**
    * Format with custom pattern
-   * 
+   *
    * @example
    * ```typescript
    * duration.format('HH:mm:ss'); // "02:30:00"
@@ -284,29 +301,32 @@ export class Duration {
     const seconds = hasSeconds ? Math.floor(secondBase / 1000) : 0;
     const milliseconds = hasSeconds ? secondBase - seconds * 1000 : secondBase;
 
-    const result = pattern.replace(
-      /\[([^\]]*)\]|d+|H+|h+|m+|s+|S+/g,
-      (match, literal) => {
-        if (literal !== undefined) return literal;
-        const width = match.length;
-        switch (match[0]) {
-          case 'd': return String(days).padStart(width, '0');
-          case 'H':
-          case 'h': return String(hours).padStart(width, '0');
-          case 'm': return String(minutes).padStart(width, '0');
-          case 's': return String(seconds).padStart(width, '0');
-          case 'S': return String(milliseconds).padStart(width, '0');
-          default: return match;
-        }
+    const result = pattern.replace(/\[([^\]]*)\]|d+|H+|h+|m+|s+|S+/g, (match, literal) => {
+      if (literal !== undefined) return literal;
+      const width = match.length;
+      switch (match[0]) {
+        case 'd':
+          return String(days).padStart(width, '0');
+        case 'H':
+        case 'h':
+          return String(hours).padStart(width, '0');
+        case 'm':
+          return String(minutes).padStart(width, '0');
+        case 's':
+          return String(seconds).padStart(width, '0');
+        case 'S':
+          return String(milliseconds).padStart(width, '0');
+        default:
+          return match;
       }
-    );
+    });
 
     return negative ? `-${result}` : result;
   }
-  
+
   /**
    * Format as ISO 8601 duration
-   * 
+   *
    * @example
    * ```typescript
    * duration.toISO(); // "PT2H30M"
@@ -335,55 +355,53 @@ export class Duration {
 
     return (negative ? '-' : '') + result;
   }
-  
+
   // =========================================================================
   // ARITHMETIC
   // =========================================================================
-  
+
   add(other: Duration | DurationObject): Duration {
-    const otherMs = other instanceof Duration 
-      ? other.#milliseconds
-      : Duration.fromObject(other).#milliseconds;
-    
+    const otherMs =
+      other instanceof Duration ? other.#milliseconds : Duration.fromObject(other).#milliseconds;
+
     return new Duration(this.#milliseconds + otherMs);
   }
-  
+
   subtract(other: Duration | DurationObject): Duration {
-    const otherMs = other instanceof Duration 
-      ? other.#milliseconds
-      : Duration.fromObject(other).#milliseconds;
-    
+    const otherMs =
+      other instanceof Duration ? other.#milliseconds : Duration.fromObject(other).#milliseconds;
+
     return new Duration(this.#milliseconds - otherMs);
   }
-  
+
   negate(): Duration {
     return new Duration(-this.#milliseconds);
   }
-  
+
   abs(): Duration {
     return new Duration(Math.abs(this.#milliseconds));
   }
-  
+
   // =========================================================================
   // UTILITIES
   // =========================================================================
-  
+
   isZero(): boolean {
     return this.#milliseconds === 0;
   }
-  
+
   isNegative(): boolean {
     return this.#milliseconds < 0;
   }
-  
+
   valueOf(): number {
     return this.#milliseconds;
   }
-  
+
   toString(): string {
     return this.humanize();
   }
-  
+
   toJSON(): string {
     return this.toISO();
   }

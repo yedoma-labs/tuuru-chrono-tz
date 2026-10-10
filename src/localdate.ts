@@ -7,7 +7,7 @@
  */
 
 import { DateTime } from './datetime.js';
-import { daysInMonth, weekdayOf, pad } from './internal.js';
+import { daysInMonth, pad, weekdayOf } from './internal.js';
 import type { Locale } from './locale.js';
 import type { DateObject } from './types.js';
 
@@ -16,7 +16,7 @@ const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 export class LocalDate {
   readonly #year: number;
   readonly #month: number; // 1-12
-  readonly #day: number;   // 1-31
+  readonly #day: number; // 1-31
 
   private constructor(year: number, month: number, day: number) {
     this.#year = year;
@@ -33,6 +33,7 @@ export class LocalDate {
     }
     const m = ISO_DATE.exec(iso);
     if (!m) throw new Error(`Invalid ISO date: "${iso}"`);
+    // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
     return LocalDate.of(parseInt(m[1]!, 10), parseInt(m[2]!, 10), parseInt(m[3]!, 10));
   }
 
@@ -75,24 +76,44 @@ export class LocalDate {
 
   // ---- getters ------------------------------------------------------------
 
-  get year(): number { return this.#year; }
-  get month(): number { return this.#month; }
-  get day(): number { return this.#day; }
+  get year(): number {
+    return this.#year;
+  }
+  get month(): number {
+    return this.#month;
+  }
+  get day(): number {
+    return this.#day;
+  }
 
   /** ISO weekday, 1 = Monday .. 7 = Sunday */
   get weekday(): number {
-    return weekdayOf({ year: this.#year, month: this.#month, day: this.#day, hour: 0, minute: 0, second: 0, millisecond: 0 });
+    return weekdayOf({
+      year: this.#year,
+      month: this.#month,
+      day: this.#day,
+      hour: 0,
+      minute: 0,
+      second: 0,
+      millisecond: 0,
+    });
   }
 
-  get quarter(): number { return Math.floor((this.#month - 1) / 3) + 1; }
+  get quarter(): number {
+    return Math.floor((this.#month - 1) / 3) + 1;
+  }
 
   get dayOfYear(): number {
-    return Math.round(
-      (Date.UTC(this.#year, this.#month - 1, this.#day) - Date.UTC(this.#year, 0, 1)) / 86400000
-    ) + 1;
+    return (
+      Math.round(
+        (Date.UTC(this.#year, this.#month - 1, this.#day) - Date.UTC(this.#year, 0, 1)) / 86400000,
+      ) + 1
+    );
   }
 
-  get daysInMonth(): number { return daysInMonth(this.#year, this.#month); }
+  get daysInMonth(): number {
+    return daysInMonth(this.#year, this.#month);
+  }
 
   get isLeapYear(): boolean {
     const y = this.#year;
@@ -108,7 +129,8 @@ export class LocalDate {
 
   add(duration: { years?: number; months?: number; weeks?: number; days?: number }): LocalDate {
     for (const v of Object.values(duration)) {
-      if (v !== undefined && !Number.isFinite(v)) throw new Error('LocalDate.add requires finite values');
+      if (v !== undefined && !Number.isFinite(v))
+        throw new Error('LocalDate.add requires finite values');
     }
     let year = this.#year;
     let month = this.#month;
@@ -118,7 +140,7 @@ export class LocalDate {
     if (months !== 0) {
       const total = year * 12 + (month - 1) + months;
       year = Math.floor(total / 12);
-      month = ((total % 12) + 12) % 12 + 1;
+      month = (((total % 12) + 12) % 12) + 1;
       day = Math.min(day, daysInMonth(year, month)); // clamp month-end overflow
     }
 
@@ -133,7 +155,12 @@ export class LocalDate {
     return new LocalDate(year, month, day);
   }
 
-  subtract(duration: { years?: number; months?: number; weeks?: number; days?: number }): LocalDate {
+  subtract(duration: {
+    years?: number;
+    months?: number;
+    weeks?: number;
+    days?: number;
+  }): LocalDate {
     const neg: Record<string, number> = {};
     for (const [k, v] of Object.entries(duration)) if (v !== undefined) neg[k] = -v;
     return this.add(neg);
@@ -146,11 +173,21 @@ export class LocalDate {
 
   // ---- comparison ---------------------------------------------------------
 
-  equals(other: LocalDate): boolean { return this.#ordinal === other.#ordinal; }
-  isBefore(other: LocalDate): boolean { return this.#ordinal < other.#ordinal; }
-  isAfter(other: LocalDate): boolean { return this.#ordinal > other.#ordinal; }
-  isSameOrBefore(other: LocalDate): boolean { return this.#ordinal <= other.#ordinal; }
-  isSameOrAfter(other: LocalDate): boolean { return this.#ordinal >= other.#ordinal; }
+  equals(other: LocalDate): boolean {
+    return this.#ordinal === other.#ordinal;
+  }
+  isBefore(other: LocalDate): boolean {
+    return this.#ordinal < other.#ordinal;
+  }
+  isAfter(other: LocalDate): boolean {
+    return this.#ordinal > other.#ordinal;
+  }
+  isSameOrBefore(other: LocalDate): boolean {
+    return this.#ordinal <= other.#ordinal;
+  }
+  isSameOrAfter(other: LocalDate): boolean {
+    return this.#ordinal >= other.#ordinal;
+  }
   isBetween(start: LocalDate, end: LocalDate): boolean {
     return this.#ordinal >= start.#ordinal && this.#ordinal <= end.#ordinal;
   }
@@ -166,10 +203,14 @@ export class LocalDate {
   }
 
   /** True if weekday is Saturday (6) or Sunday (7). */
-  isWeekend(): boolean { return this.weekday >= 6; }
+  isWeekend(): boolean {
+    return this.weekday >= 6;
+  }
 
   /** True if weekday is Monday–Friday (1–5). */
-  isWeekday(): boolean { return this.weekday <= 5; }
+  isWeekday(): boolean {
+    return this.weekday <= 5;
+  }
 
   // ---- conversion / formatting --------------------------------------------
 
@@ -179,11 +220,11 @@ export class LocalDate {
    */
   toDateTime(
     timezone: string = 'UTC',
-    time?: { hour?: number; minute?: number; second?: number; millisecond?: number }
+    time?: { hour?: number; minute?: number; second?: number; millisecond?: number },
   ): DateTime {
     return DateTime.fromObject(
       { year: this.#year, month: this.#month, day: this.#day, ...time },
-      { timezone }
+      { timezone },
     );
   }
 
@@ -210,10 +251,18 @@ export class LocalDate {
   toLocaleString(options?: Intl.DateTimeFormatOptions, locale?: Locale): string {
     const tag = locale?.name.replace(/_/g, '-');
     const date = new Date(Date.UTC(this.#year, this.#month - 1, this.#day));
-    return new Intl.DateTimeFormat(tag, { dateStyle: 'long', timeZone: 'UTC', ...options }).format(date);
+    return new Intl.DateTimeFormat(tag, { dateStyle: 'long', timeZone: 'UTC', ...options }).format(
+      date,
+    );
   }
 
-  toString(): string { return this.toISO(); }
-  toJSON(): string { return this.toISO(); }
-  valueOf(): number { return this.#ordinal; }
+  toString(): string {
+    return this.toISO();
+  }
+  toJSON(): string {
+    return this.toISO();
+  }
+  valueOf(): number {
+    return this.#ordinal;
+  }
 }

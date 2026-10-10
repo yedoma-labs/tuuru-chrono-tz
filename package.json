@@ -43,11 +43,13 @@
     "test": "node --test test/datetime.test.js test/duration.test.js test/timezone.test.js test/locale.test.js test/locales.test.js test/calendar.test.js test/local.test.js test/exports.test.js test/security.test.js test/convenience.test.js test/cjs.test.js",
     "size": "node scripts/check-size.js",
     "bench": "node scripts/benchmark.js",
-    "lint": "eslint src/**/*.ts",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "clean": "rm -rf dist"
+    "lint": "biome check src",
+    "format": "biome format --write src",
+    "clean": "rm -rf dist",
+    "lint:fix": "biome check --write src"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@semantic-release/changelog": "^7.0.0",
