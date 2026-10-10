@@ -1,3 +1,10 @@
+## [0.3.3](https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.3.2...v0.3.3) (2026-10-10)
+
+
+### Bug Fixes
+
+* **deps:** override vulnerable transitive dependencies ([#3](https://github.com/yedoma-labs/tuuru-chrono-tz/issues/3)) ([599cdcf](https://github.com/yedoma-labs/tuuru-chrono-tz/commit/599cdcf9903526ebe4a743b22785b71777587552))
+
 ## [0.3.2](https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.3.1...v0.3.2) (2026-10-10)
 
 
