@@ -1,3 +1,10 @@
+## [0.3.2](https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.3.1...v0.3.2) (2026-10-10)
+
+
+### Bug Fixes
+
+* typescript 6.0.3 compatibility - add ignoreDeprecations and types config ([1705f7c](https://github.com/yedoma-labs/tuuru-chrono-tz/commit/1705f7cd911ef2916eda1e458b4d10c1a93bddf2))
+
 # Changelog
 
 All notable changes to `@yedoma-labs/tuuru-chrono-tz` follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
