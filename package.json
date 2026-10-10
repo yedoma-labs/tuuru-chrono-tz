@@ -35,7 +35,7 @@
     "download-cldr": "node scripts/download-cldr.js",
     "build-cldr": "node scripts/build-cldr.js",
     "build-cldr-all": "pnpm download-cldr && pnpm build-cldr",
-    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'}))\" && node scripts/build-cdn.js",
+    "build": "tsc && node scripts/build-cjs.mjs && node -e \"require('node:fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'}))\" && node scripts/build-cdn.js",
     "build:cdn": "node scripts/build-cdn.js",
     "typecheck": "tsc --noEmit",
     "prepack": "pnpm clean && pnpm build",
@@ -58,10 +58,11 @@
     "@semantic-release/npm": "^13.2.0",
     "@semantic-release/release-notes-generator": "^14.1.1",
     "@types/node": "^26.6.5",
+    "@typescript/typescript6": "^6.0.2",
     "cldr-data": "^36.0.5",
     "esbuild": "^0.28.2",
     "semantic-release": "^25.0.9",
-    "typescript": "6.0.3"
+    "typescript": "7.0.2"
   },
   "files": [
     "dist/**/*.js",
