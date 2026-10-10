@@ -4,31 +4,31 @@
  * Immutable date/time with timezone support.
  */
 
+import { Duration } from './duration.js';
+import type { WallClock } from './internal.js';
+import {
+  daysInMonth,
+  escapeRegExp,
+  formatOffset,
+  getOffsetMinutes,
+  getWallClock,
+  humanizeDelta,
+  normalizeZone,
+  pad,
+  wallClockToTimestamp,
+  weekdayOf,
+} from './internal.js';
+import type { Locale } from './locale.js';
+import { getDefaultLocale, setDefaultLocale, weekPhrase } from './locale.js';
 import type {
   DateObject,
-  TimeObject,
-  DurationObject,
   DateTimeOptions,
+  DurationObject,
   ParseOptions,
   RelativeTimeOptions,
-  TimeUnit
+  TimeObject,
+  TimeUnit,
 } from './types.js';
-import { Duration } from './duration.js';
-import { getDefaultLocale, setDefaultLocale, weekPhrase } from './locale.js';
-import type { Locale } from './locale.js';
-import {
-  getWallClock,
-  getOffsetMinutes,
-  wallClockToTimestamp,
-  normalizeZone,
-  daysInMonth,
-  weekdayOf,
-  pad,
-  formatOffset,
-  escapeRegExp,
-  humanizeDelta
-} from './internal.js';
-import type { WallClock } from './internal.js';
 
 /**
  * Strict ISO 8601 pattern (extended format):
@@ -61,10 +61,11 @@ const PARSE_TOKENS: Record<string, { pattern: string; field: string }> = {
   s: { pattern: '(\\d{1,2})', field: 'second' },
   SSS: { pattern: '(\\d{3})', field: 'millisecond' },
   A: { pattern: '(AM|PM)', field: 'meridiem' },
-  a: { pattern: '(am|pm)', field: 'meridiem' }
+  a: { pattern: '(am|pm)', field: 'meridiem' },
 };
 
-const PARSE_TOKEN_REGEX = /\[([^\]]*)\]|YYYY|MMMM|MMM|MM|M|DD|D|dddd|ddd|HH|H|hh|h|mm|m|ss|s|SSS|A|a/g;
+const PARSE_TOKEN_REGEX =
+  /\[([^\]]*)\]|YYYY|MMMM|MMM|MM|M|DD|D|dddd|ddd|HH|H|hh|h|mm|m|ss|s|SSS|A|a/g;
 
 // ============================================================================
 // DATETIME
@@ -173,7 +174,7 @@ export class DateTime {
     if (dates.length === 0) {
       throw new Error('DateTime.min requires at least one argument');
     }
-    return dates.reduce((earliest, d) => d.#timestamp < earliest.#timestamp ? d : earliest);
+    return dates.reduce((earliest, d) => (d.#timestamp < earliest.#timestamp ? d : earliest));
   }
 
   /**
@@ -185,7 +186,7 @@ export class DateTime {
     if (dates.length === 0) {
       throw new Error('DateTime.max requires at least one argument');
     }
-    return dates.reduce((latest, d) => d.#timestamp > latest.#timestamp ? d : latest);
+    return dates.reduce((latest, d) => (d.#timestamp > latest.#timestamp ? d : latest));
   }
 
   /**
@@ -218,15 +219,16 @@ export class DateTime {
       throw new Error(`Invalid ISO 8601 format: "${iso}"`);
     }
 
+    // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
     const year = parseInt(match[1]!, 10);
+    // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
     const month = parseInt(match[2]!, 10);
+    // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
     const day = parseInt(match[3]!, 10);
     const hour = match[4] !== undefined ? parseInt(match[4], 10) : 0;
     const minute = match[5] !== undefined ? parseInt(match[5], 10) : 0;
     const second = match[6] !== undefined ? parseInt(match[6], 10) : 0;
-    const millisecond = match[7] !== undefined
-      ? parseInt(match[7].padEnd(3, '0'), 10)
-      : 0;
+    const millisecond = match[7] !== undefined ? parseInt(match[7].padEnd(3, '0'), 10) : 0;
     const suffix = match[8];
 
     if (month < 1 || month > 12) {
@@ -250,14 +252,15 @@ export class DateTime {
       // Fixed offset suffix like +09:00 / -0530
       const sign = suffix[0] === '-' ? -1 : 1;
       const digits = suffix.replace(':', '').slice(1);
-      const offsetMinutes = sign * (parseInt(digits.slice(0, 2), 10) * 60 + parseInt(digits.slice(2), 10));
+      const offsetMinutes =
+        sign * (parseInt(digits.slice(0, 2), 10) * 60 + parseInt(digits.slice(2), 10));
 
       if (Math.abs(offsetMinutes) > 14 * 60) {
         throw new Error(`Invalid ISO 8601 offset: out of range in "${iso}"`);
       }
 
-      const ts = Date.UTC(year, month - 1, day, hour, minute, second, millisecond)
-        - offsetMinutes * 60000;
+      const ts =
+        Date.UTC(year, month - 1, day, hour, minute, second, millisecond) - offsetMinutes * 60000;
       const tz = options?.timezone ? normalizeZone(options.timezone) : 'UTC';
       return new DateTime(ts, tz);
     }
@@ -300,10 +303,14 @@ export class DateTime {
     // Build a case-insensitive name → number lookup, longest names first so
     // the alternation prefers "March" over "Mar". Returns the alternation
     // source and a decoder.
-    const nameToken = (full: readonly string[], short: readonly string[]):
-      { pattern: string; map: Map<string, number> } => {
+    const nameToken = (
+      full: readonly string[],
+      short: readonly string[],
+    ): { pattern: string; map: Map<string, number> } => {
       const map = new Map<string, number>();
+      // biome-ignore lint/suspicious/useIterableCallbackReturn: callback result is intentionally ignored
       full.forEach((n, i) => map.set(n.toLowerCase(), i + 1));
+      // biome-ignore lint/suspicious/useIterableCallbackReturn: callback result is intentionally ignored
       short.forEach((n, i) => map.set(n.toLowerCase(), i + 1));
       // Longest names first so "March" beats "Mar" in the alternation
       const sorted = [...new Set([...full, ...short])].sort((a, b) => b.length - a.length);
@@ -326,6 +333,7 @@ export class DateTime {
 
     PARSE_TOKEN_REGEX.lastIndex = 0;
     let tokenMatch: RegExpExecArray | null;
+    // biome-ignore lint/suspicious/noAssignInExpressions: compact assignment in expression is intentional
     while ((tokenMatch = PARSE_TOKEN_REGEX.exec(format)) !== null) {
       // Literal text between tokens must match exactly
       regexSource += escapeRegExp(format.slice(lastIndex, tokenMatch.index));
@@ -337,24 +345,28 @@ export class DateTime {
         // Match either full or abbreviated month names (lenient)
         const nt = nameToken(locale.months, locale.monthsShort);
         regexSource += nt.pattern;
+        // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
         addField('month', (s) => nt.map.get(s.toLowerCase())!);
       } else if (tok === 'dddd' || tok === 'ddd') {
         // Weekday names are parsed and validated but do not set the date
         const nt = nameToken(locale.weekdays, locale.weekdaysShort);
         regexSource += nt.pattern;
+        // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
         addField('weekday', (s) => nt.map.get(s.toLowerCase())!);
       } else if (tok === 'A' || tok === 'a') {
+        // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
         const token = PARSE_TOKENS[tok]!;
         regexSource += token.pattern;
         addField(token.field, (s) => s.toUpperCase());
       } else {
+        // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
         const token = PARSE_TOKENS[tok]!;
         regexSource += token.pattern;
         addField(token.field, (s) => parseInt(s, 10));
       }
       lastIndex = tokenMatch.index + tokenMatch[0].length;
     }
-    regexSource += escapeRegExp(format.slice(lastIndex)) + '$';
+    regexSource += `${escapeRegExp(format.slice(lastIndex))}$`;
 
     const match = new RegExp(regexSource, 'i').exec(str);
     if (!match) {
@@ -363,15 +375,17 @@ export class DateTime {
 
     const values: Record<string, number | string> = Object.create(null);
     fields.forEach(({ field, decode }, i) => {
+      // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
       values[field] = decode(match[i + 1]!);
     });
 
     const num = (field: string): number | undefined =>
-      values[field] === undefined ? undefined : values[field] as number;
+      values[field] === undefined ? undefined : (values[field] as number);
 
     if (num('hour') !== undefined && num('hour12') !== undefined) {
       throw new Error(`Format "${format}" mixes 24-hour and 12-hour tokens`);
     }
+    // biome-ignore lint/complexity/useLiteralKeys: bracket access is required for index signatures (noPropertyAccessFromIndexSignature)
     if (num('hour12') !== undefined && values['meridiem'] === undefined) {
       throw new Error(`Format "${format}" uses 12-hour token without AM/PM token`);
     }
@@ -383,27 +397,33 @@ export class DateTime {
 
     let hour = 0;
     if (num('hour') !== undefined) {
+      // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
       hour = num('hour')!;
     } else if (num('hour12') !== undefined) {
+      // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
       const h12 = num('hour12')!;
       if (h12 < 1 || h12 > 12) {
         throw new Error(`Invalid 12-hour value ${h12} in "${str}"`);
       }
+      // biome-ignore lint/complexity/useLiteralKeys: bracket access is required for index signatures (noPropertyAccessFromIndexSignature)
       const isPM = values['meridiem'] === 'PM';
       hour = (h12 % 12) + (isPM ? 12 : 0);
     }
 
     return DateTime.fromObject(
       {
+        // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
         year: num('year')!,
+        // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
         month: num('month')!,
+        // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
         day: num('day')!,
         hour,
         minute: num('minute') ?? 0,
         second: num('second') ?? 0,
-        millisecond: num('millisecond') ?? 0
+        millisecond: num('millisecond') ?? 0,
       },
-      options?.timezone !== undefined ? { timezone: options.timezone } : undefined
+      options?.timezone !== undefined ? { timezone: options.timezone } : undefined,
     );
   }
 
@@ -445,7 +465,7 @@ export class DateTime {
       hour: obj.hour ?? 0,
       minute: obj.minute ?? 0,
       second: obj.second ?? 0,
-      millisecond: obj.millisecond ?? 0
+      millisecond: obj.millisecond ?? 0,
     };
 
     if (!Number.isInteger(wc.year)) {
@@ -457,8 +477,16 @@ export class DateTime {
     if (wc.day < 1 || wc.day > daysInMonth(wc.year, wc.month)) {
       throw new Error(`Invalid date object: day out of range for ${wc.year}-${wc.month}`);
     }
-    if (wc.hour < 0 || wc.hour > 23 || wc.minute < 0 || wc.minute > 59 ||
-        wc.second < 0 || wc.second > 59 || wc.millisecond < 0 || wc.millisecond > 999) {
+    if (
+      wc.hour < 0 ||
+      wc.hour > 23 ||
+      wc.minute < 0 ||
+      wc.minute > 59 ||
+      wc.second < 0 ||
+      wc.second > 59 ||
+      wc.millisecond < 0 ||
+      wc.millisecond > 999
+    ) {
       throw new Error('Invalid date object: time component out of range');
     }
 
@@ -645,7 +673,7 @@ export class DateTime {
       hour: values.hour ?? wc.hour,
       minute: values.minute ?? wc.minute,
       second: values.second ?? wc.second,
-      millisecond: values.millisecond ?? wc.millisecond
+      millisecond: values.millisecond ?? wc.millisecond,
     };
 
     if (merged.month < 1 || merged.month > 12) {
@@ -654,8 +682,16 @@ export class DateTime {
     if (merged.day < 1 || merged.day > daysInMonth(merged.year, merged.month)) {
       throw new Error(`Invalid day ${merged.day} for ${merged.year}-${merged.month}`);
     }
-    if (merged.hour < 0 || merged.hour > 23 || merged.minute < 0 || merged.minute > 59 ||
-        merged.second < 0 || merged.second > 59 || merged.millisecond < 0 || merged.millisecond > 999) {
+    if (
+      merged.hour < 0 ||
+      merged.hour > 23 ||
+      merged.minute < 0 ||
+      merged.minute > 59 ||
+      merged.second < 0 ||
+      merged.second > 59 ||
+      merged.millisecond < 0 ||
+      merged.millisecond > 999
+    ) {
       throw new Error('Invalid time component');
     }
 
@@ -703,9 +739,9 @@ export class DateTime {
       let day = wc.day;
 
       if (monthsToAdd !== 0) {
-        const totalMonths = (year * 12 + (month - 1)) + monthsToAdd;
+        const totalMonths = year * 12 + (month - 1) + monthsToAdd;
         year = Math.floor(totalMonths / 12);
-        month = (totalMonths % 12 + 12) % 12 + 1;
+        month = (((totalMonths % 12) + 12) % 12) + 1;
         day = Math.min(day, daysInMonth(year, month));
       }
 
@@ -717,10 +753,7 @@ export class DateTime {
         day = rolled.getUTCDate();
       }
 
-      const ts = wallClockToTimestamp(
-        { ...wc, year, month, day },
-        this.#timezone
-      );
+      const ts = wallClockToTimestamp({ ...wc, year, month, day }, this.#timezone);
       result = new DateTime(ts, this.#timezone, this.#locale);
     }
 
@@ -791,8 +824,9 @@ export class DateTime {
     if (!unit) {
       return this.#timestamp === other.#timestamp;
     }
-    return this.startOf(unit).valueOf() ===
-      other.setTimezone(this.#timezone).startOf(unit).valueOf();
+    return (
+      this.startOf(unit).valueOf() === other.setTimezone(this.#timezone).startOf(unit).valueOf()
+    );
   }
 
   /** -1 if this < other, 0 if equal, 1 if this > other. Safe for Array.sort. */
@@ -841,13 +875,17 @@ export class DateTime {
     const tokens: Record<string, string> = {
       YYYY: pad(wc.year, 4),
       YY: pad(wc.year % 100, 2),
+      // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
       MMMM: locale.months[wc.month - 1]!,
+      // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
       MMM: locale.monthsShort[wc.month - 1]!,
       MM: pad(wc.month, 2),
       M: String(wc.month),
       DD: pad(wc.day, 2),
       D: String(wc.day),
+      // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
       dddd: locale.weekdays[weekday - 1]!,
+      // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
       ddd: locale.weekdaysShort[weekday - 1]!,
       HH: pad(wc.hour, 2),
       H: String(wc.hour),
@@ -866,12 +904,12 @@ export class DateTime {
       DDDD: pad(this.dayOfYear, 3),
       DDD: String(this.dayOfYear),
       WW: pad(this.weekOfYear, 2),
-      W: String(this.weekOfYear)
+      W: String(this.weekOfYear),
     };
 
     return pattern.replace(
       /\[([^\]]*)\]|YYYY|YY|MMMM|MMM|MM|M|DDDD|DDD|DD|D|dddd|ddd|HH|H|hh|h|mm|m|ss|s|SSS|A|a|ZZ|Z|Q|WW|W/g,
-      (match, literal) => literal !== undefined ? literal : (tokens[match] ?? match)
+      (match, literal) => (literal !== undefined ? literal : (tokens[match] ?? match)),
     );
   }
 
@@ -891,7 +929,8 @@ export class DateTime {
     const wc = this.#wallClock;
     const offset = this.offset;
 
-    const base = `${pad(wc.year, 4)}-${pad(wc.month, 2)}-${pad(wc.day, 2)}` +
+    const base =
+      `${pad(wc.year, 4)}-${pad(wc.month, 2)}-${pad(wc.day, 2)}` +
       `T${pad(wc.hour, 2)}:${pad(wc.minute, 2)}:${pad(wc.second, 2)}.${pad(wc.millisecond, 3)}`;
 
     return base + (this.#timezone === 'UTC' ? 'Z' : formatOffset(offset, ':'));
@@ -920,7 +959,9 @@ export class DateTime {
    */
   toLocaleString(options?: Intl.DateTimeFormatOptions): string {
     const tag = this.#effectiveLocale.name.replace(/_/g, '-');
-    return new Intl.DateTimeFormat(tag, { timeZone: this.#timezone, ...options }).format(this.toDate());
+    return new Intl.DateTimeFormat(tag, { timeZone: this.#timezone, ...options }).format(
+      this.toDate(),
+    );
   }
 
   /** `Intl`-formatted date only (`dateStyle: 'long'` by default). */
@@ -968,7 +1009,11 @@ export class DateTime {
    * ```
    */
   fromNow(options?: RelativeTimeOptions): string {
-    return humanizeDelta(this.#timestamp - Date.now(), options, options?.locale ?? this.#effectiveLocale);
+    return humanizeDelta(
+      this.#timestamp - Date.now(),
+      options,
+      options?.locale ?? this.#effectiveLocale,
+    );
   }
 
   /**
@@ -980,7 +1025,11 @@ export class DateTime {
    * ```
    */
   toNow(options?: RelativeTimeOptions): string {
-    return humanizeDelta(Date.now() - this.#timestamp, options, options?.locale ?? this.#effectiveLocale);
+    return humanizeDelta(
+      Date.now() - this.#timestamp,
+      options,
+      options?.locale ?? this.#effectiveLocale,
+    );
   }
 
   /**
@@ -992,7 +1041,11 @@ export class DateTime {
    * ```
    */
   to(other: DateTime, options?: RelativeTimeOptions): string {
-    return humanizeDelta(other.valueOf() - this.#timestamp, options, options?.locale ?? this.#effectiveLocale);
+    return humanizeDelta(
+      other.valueOf() - this.#timestamp,
+      options,
+      options?.locale ?? this.#effectiveLocale,
+    );
   }
 
   /**
@@ -1013,9 +1066,12 @@ export class DateTime {
     if (dayDiff === 1) return locale.calendar.tomorrow;
     if (dayDiff === -1) return locale.calendar.yesterday;
 
+    // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
     const weekdayName = locale.weekdays[this.weekday - 1]!;
-    if (dayDiff > 1 && dayDiff < 7) return weekPhrase(locale.calendar.nextWeek, weekdayName, this.weekday);
-    if (dayDiff < -1 && dayDiff > -7) return weekPhrase(locale.calendar.lastWeek, weekdayName, this.weekday);
+    if (dayDiff > 1 && dayDiff < 7)
+      return weekPhrase(locale.calendar.nextWeek, weekdayName, this.weekday);
+    if (dayDiff < -1 && dayDiff > -7)
+      return weekPhrase(locale.calendar.lastWeek, weekdayName, this.weekday);
 
     return this.format('YYYY-MM-DD');
   }
@@ -1084,13 +1140,19 @@ export class DateTime {
     if (unit === 'millisecond') return this;
 
     const nextUnit: DurationObject =
-      unit === 'year' ? { years: 1 } :
-      unit === 'month' ? { months: 1 } :
-      unit === 'week' ? { weeks: 1 } :
-      unit === 'day' ? { days: 1 } :
-      unit === 'hour' ? { hours: 1 } :
-      unit === 'minute' ? { minutes: 1 } :
-      { seconds: 1 };
+      unit === 'year'
+        ? { years: 1 }
+        : unit === 'month'
+          ? { months: 1 }
+          : unit === 'week'
+            ? { weeks: 1 }
+            : unit === 'day'
+              ? { days: 1 }
+              : unit === 'hour'
+                ? { hours: 1 }
+                : unit === 'minute'
+                  ? { minutes: 1 }
+                  : { seconds: 1 };
 
     const startOfNext = this.startOf(unit).add(nextUnit);
     return new DateTime(startOfNext.valueOf() - 1, this.#timezone, this.#locale);
@@ -1164,6 +1226,8 @@ export class DateTime {
   }
 
   isValid(): boolean {
+    // biome-ignore lint/suspicious/noGlobalIsNan: global isNaN coerces strings, which is relied upon here
+    // biome-ignore lint/suspicious/noGlobalIsFinite: global isFinite coerces strings, which is relied upon here
     return !isNaN(this.#timestamp) && isFinite(this.#timestamp);
   }
 

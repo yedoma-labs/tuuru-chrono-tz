@@ -126,7 +126,8 @@ export interface Locale {
  * that supplies fewer forms than its selector indexes never reads undefined.
  */
 export function pickForm(forms: readonly string[], n: number, locale: Locale): string {
-  const idx = locale.plural ? locale.plural(n) : (n === 1 ? 0 : 1);
+  const idx = locale.plural ? locale.plural(n) : n === 1 ? 0 : 1;
+  // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
   return forms[Math.min(idx, forms.length - 1)] ?? forms[0]!;
 }
 
@@ -137,7 +138,7 @@ export function pickForm(forms: readonly string[], n: number, locale: Locale): s
 export function weekPhrase(
   phrase: string | ((weekday: string, weekdayIndex: number) => string),
   weekday: string,
-  weekdayIndex: number
+  weekdayIndex: number,
 ): string {
   return typeof phrase === 'function'
     ? phrase(weekday, weekdayIndex)
@@ -150,13 +151,20 @@ export function weekPhrase(
 export const en: Locale = {
   name: 'en',
   months: [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ],
-  monthsShort: [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-  ],
+  monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   weekdays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
   weekdaysShort: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
   meridiem: (hour, lowercase) => {
@@ -174,16 +182,16 @@ export const en: Locale = {
       hour: ['hour', 'hours'],
       day: ['day', 'days'],
       month: ['month', 'months'],
-      year: ['year', 'years']
+      year: ['year', 'years'],
     },
-    shortUnits: { second: 's', minute: 'm', hour: 'h', day: 'd', month: 'mo', year: 'y' }
+    shortUnits: { second: 's', minute: 'm', hour: 'h', day: 'd', month: 'mo', year: 'y' },
   },
   calendar: {
     today: 'today',
     tomorrow: 'tomorrow',
     yesterday: 'yesterday',
     nextWeek: 'next {0}',
-    lastWeek: 'last {0}'
+    lastWeek: 'last {0}',
   },
   duration: {
     units: {
@@ -192,19 +200,19 @@ export const en: Locale = {
       hour: ['hour', 'hours'],
       day: ['day', 'days'],
       month: ['month', 'months'],
-      year: ['year', 'years']
+      year: ['year', 'years'],
     },
     shortUnits: { second: 's', minute: 'm', hour: 'h', day: 'd', month: 'mo', year: 'y' },
     listSeparator: ', ',
     zero: '0 seconds',
-    zeroShort: '0s'
+    zeroShort: '0s',
   },
   dateFormats: {
-    short:  'MM/DD/YYYY',
+    short: 'MM/DD/YYYY',
     medium: 'MMM D, YYYY',
-    long:   'MMMM D, YYYY',
-    full:   'dddd, MMMM D, YYYY'
-  }
+    long: 'MMMM D, YYYY',
+    full: 'dddd, MMMM D, YYYY',
+  },
 };
 
 let defaultLocale: Locale = en;

@@ -6,15 +6,15 @@
  * @internal
  */
 
-import type { RelativeTimeOptions } from './types.js';
 import type { Locale, RelativeUnit } from './locale.js';
 import { pickForm } from './locale.js';
+import type { RelativeTimeOptions } from './types.js';
 
 export interface WallClock {
   year: number;
-  month: number;       // 1-12
-  day: number;         // 1-31
-  hour: number;        // 0-23
+  month: number; // 1-12
+  day: number; // 1-31
+  hour: number; // 0-23
   minute: number;
   second: number;
   millisecond: number;
@@ -35,7 +35,7 @@ export function getFormatter(tz: string): Intl.DateTimeFormat {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hourCycle: 'h23'
+        hourCycle: 'h23',
       });
     } catch {
       throw new Error(`Invalid timezone: ${tz}`);
@@ -91,13 +91,19 @@ export function getWallClock(timestamp: number, tz: string): WallClock {
   }
 
   const wc: WallClock = {
+    // biome-ignore lint/complexity/useLiteralKeys: bracket access is required for index signatures (noPropertyAccessFromIndexSignature)
     year: values['year'] ?? 0,
+    // biome-ignore lint/complexity/useLiteralKeys: bracket access is required for index signatures (noPropertyAccessFromIndexSignature)
     month: values['month'] ?? 1,
+    // biome-ignore lint/complexity/useLiteralKeys: bracket access is required for index signatures (noPropertyAccessFromIndexSignature)
     day: values['day'] ?? 1,
+    // biome-ignore lint/complexity/useLiteralKeys: bracket access is required for index signatures (noPropertyAccessFromIndexSignature)
     hour: values['hour'] ?? 0,
+    // biome-ignore lint/complexity/useLiteralKeys: bracket access is required for index signatures (noPropertyAccessFromIndexSignature)
     minute: values['minute'] ?? 0,
+    // biome-ignore lint/complexity/useLiteralKeys: bracket access is required for index signatures (noPropertyAccessFromIndexSignature)
     second: values['second'] ?? 0,
-    millisecond
+    millisecond,
   };
 
   if (wallClockCache.size >= WALLCLOCK_CACHE_LIMIT) {
@@ -131,8 +137,13 @@ export function getOffsetMinutes(timestamp: number, tz: string): number {
  */
 export function wallClockToTimestamp(wc: WallClock, tz: string): number {
   const asUTC = Date.UTC(
-    wc.year, wc.month - 1, wc.day,
-    wc.hour, wc.minute, wc.second, wc.millisecond
+    wc.year,
+    wc.month - 1,
+    wc.day,
+    wc.hour,
+    wc.minute,
+    wc.second,
+    wc.millisecond,
   );
 
   if (tz === 'UTC') return asUTC;
@@ -186,7 +197,7 @@ export function escapeRegExp(str: string): string {
 export function humanizeDelta(
   deltaMs: number,
   options: RelativeTimeOptions | undefined,
-  locale: Locale
+  locale: Locale,
 ): string {
   const future = deltaMs >= 0;
   const abs = Math.abs(deltaMs);
@@ -194,9 +205,7 @@ export function humanizeDelta(
   const rounding = options?.rounding ?? 'round';
   const rt = locale.relativeTime;
 
-  const roundFn = rounding === 'floor' ? Math.floor
-    : rounding === 'ceil' ? Math.ceil
-    : Math.round;
+  const roundFn = rounding === 'floor' ? Math.floor : rounding === 'ceil' ? Math.ceil : Math.round;
 
   const units: Array<[threshold: number, divisor: number, unit: RelativeUnit]> = [
     [60 * 1000, 1000, 'second'],
@@ -204,7 +213,7 @@ export function humanizeDelta(
     [24 * 60 * 60 * 1000, 60 * 60 * 1000, 'hour'],
     [30 * 24 * 60 * 60 * 1000, 24 * 60 * 60 * 1000, 'day'],
     [365 * 24 * 60 * 60 * 1000, 30 * 24 * 60 * 60 * 1000, 'month'],
-    [Infinity, 365 * 24 * 60 * 60 * 1000, 'year']
+    [Infinity, 365 * 24 * 60 * 60 * 1000, 'year'],
   ];
 
   const template = future ? rt.future : rt.past;

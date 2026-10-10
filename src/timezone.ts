@@ -4,10 +4,10 @@
  * Helper functions for working with IANA timezones.
  */
 
+import { getOffsetMinutes } from './internal.js';
+import type { TimezoneName } from './tzdata/index.js';
 import { TIMEZONE_NAMES } from './tzdata/index.js';
 import { TIMEZONE_LINKS } from './tzdata/links.js';
-import type { TimezoneName } from './tzdata/index.js';
-import { getOffsetMinutes } from './internal.js';
 
 /** Lazy Set for O(1) validation (TIMEZONE_NAMES is a 500+ entry array) */
 let nameSet: Set<string> | null = null;
@@ -29,6 +29,7 @@ function getNameSet(): Set<string> {
  * Timezone.isValid('America/New_York'); // true
  * ```
  */
+// biome-ignore lint/complexity/noStaticOnlyClass: static-only class is part of the public API
 export class Timezone {
   /**
    * List all IANA timezone names
@@ -65,7 +66,7 @@ export class Timezone {
   static search(query: string): TimezoneName[] {
     const lowerQuery = query.toLowerCase().replace(/\s+/g, '_');
 
-    return TIMEZONE_NAMES.filter(tz => {
+    return TIMEZONE_NAMES.filter((tz) => {
       const lowerTz = tz.toLowerCase();
 
       // Exact match
@@ -78,9 +79,7 @@ export class Timezone {
       const queryParts = lowerQuery.split(/[/_]/);
       const tzParts = lowerTz.split(/[/_]/);
 
-      return queryParts.every(qPart =>
-        tzParts.some(tzPart => tzPart.includes(qPart))
-      );
+      return queryParts.every((qPart) => tzParts.some((tzPart) => tzPart.includes(qPart)));
     }) as TimezoneName[];
   }
 
@@ -117,6 +116,7 @@ export class Timezone {
    * ```
    */
   static getOffset(tz: string, timestamp: number = Date.now()): number {
+    // biome-ignore lint/complexity/noThisInStatic: intentional use of this in static context
     if (!this.isValid(tz)) {
       throw new Error(`Invalid timezone: ${tz}`);
     }
@@ -138,6 +138,7 @@ export class Timezone {
    * ```
    */
   static getCanonical(tz: string): string {
+    // biome-ignore lint/complexity/noThisInStatic: intentional use of this in static context
     if (!this.isValid(tz)) {
       throw new Error(`Invalid timezone: ${tz}`);
     }
@@ -148,6 +149,7 @@ export class Timezone {
       if (!Object.hasOwn(TIMEZONE_LINKS, current)) {
         return current;
       }
+      // biome-ignore lint/style/noNonNullAssertion: value is initialized before use
       current = TIMEZONE_LINKS[current]!;
     }
     return current;
@@ -186,6 +188,7 @@ export class Timezone {
    * ```
    */
   static getAbbreviation(tz: string, timestamp: number = Date.now()): string {
+    // biome-ignore lint/complexity/noThisInStatic: intentional use of this in static context
     if (!this.isValid(tz)) {
       throw new Error(`Invalid timezone: ${tz}`);
     }
@@ -193,11 +196,11 @@ export class Timezone {
     try {
       const formatter = new Intl.DateTimeFormat('en-US', {
         timeZone: tz,
-        timeZoneName: 'short'
+        timeZoneName: 'short',
       });
 
       const parts = formatter.formatToParts(new Date(timestamp));
-      const timeZonePart = parts.find(part => part.type === 'timeZoneName');
+      const timeZonePart = parts.find((part) => part.type === 'timeZoneName');
 
       return timeZonePart?.value ?? '';
     } catch {
@@ -219,6 +222,7 @@ export class Timezone {
    * ```
    */
   static isDST(tz: string, timestamp: number = Date.now()): boolean {
+    // biome-ignore lint/complexity/noThisInStatic: intentional use of this in static context
     if (!this.isValid(tz)) {
       throw new Error(`Invalid timezone: ${tz}`);
     }
@@ -229,10 +233,7 @@ export class Timezone {
 
     // Standard offset is the smaller one (east-positive convention:
     // DST pushes the offset up, e.g. NY -300 -> -240)
-    const stdOffset = Math.min(
-      getOffsetMinutes(jan, tz),
-      getOffsetMinutes(jul, tz)
-    );
+    const stdOffset = Math.min(getOffsetMinutes(jan, tz), getOffsetMinutes(jul, tz));
 
     return getOffsetMinutes(timestamp, tz) > stdOffset;
   }
