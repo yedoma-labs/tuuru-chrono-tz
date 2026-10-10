@@ -48,9 +48,19 @@
     "clean": "rm -rf dist"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@semantic-release/changelog": "^7.0.0",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/git": "^11.0.1",
+    "@semantic-release/github": "^12.0.10",
+    "@semantic-release/npm": "^13.2.0",
+    "@semantic-release/release-notes-generator": "^14.1.1",
     "@types/node": "^20.0.0",
     "cldr-data": "^36.0.5",
     "esbuild": "^0.28.0",
+    "semantic-release": "^25.0.9",
     "typescript": "6.0.3"
   },
   "files": [
@@ -97,5 +107,8 @@
         "default": "./dist/cjs/locales/*.js"
       }
     }
+  },
+  "simple-git-hooks": {
+    "commit-msg": "pnpm exec commitlint --edit $1"
   }
 }
