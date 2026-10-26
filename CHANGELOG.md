@@ -1,3 +1,10 @@
+## [0.3.4](https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.3.3...v0.3.4) (2026-10-26)
+
+
+### Bug Fixes
+
+* **deps:** update dependencies to latest ([#10](https://github.com/yedoma-labs/tuuru-chrono-tz/issues/10)) ([42803db](https://github.com/yedoma-labs/tuuru-chrono-tz/commit/42803dbc4a3c227754779e00a796acc8db99db9a))
+
 ## [0.3.3](https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.3.2...v0.3.3) (2026-10-10)
 
 
