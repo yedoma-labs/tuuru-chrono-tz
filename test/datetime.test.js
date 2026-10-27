@@ -557,6 +557,52 @@ describe('DateTime DST overlap and gap resolution', () => {
     );
     assert.equal(gap.hour, 3); // lands on 03:30 EDT
   });
+
+  // Forward jumps (clocks move ahead) used to resolve backwards: the gap
+  // landed one hour earlier and the overlap took the later occurrence.
+  it('forward-jump gap shifts forward in Europe/London', () => {
+    // 2024-03-31 01:30 does not exist; 01:00 UTC becomes 02:00 BST
+    const gap = DateTime.fromObject(
+      { year: 2024, month: 3, day: 31, hour: 1, minute: 30 },
+      { timezone: 'Europe/London' }
+    );
+    assert.equal(gap.toISO(), '2024-03-31T02:30:00.000+01:00');
+    assert.equal(gap.toUnix(), 1711848600);
+  });
+
+  it('forward-jump overlap picks the earlier instant in Europe/London', () => {
+    // 2024-10-27 01:30 happens twice: BST (00:30 UTC) then GMT (01:30 UTC)
+    const ambiguous = DateTime.fromObject(
+      { year: 2024, month: 10, day: 27, hour: 1, minute: 30 },
+      { timezone: 'Europe/London' }
+    );
+    assert.equal(ambiguous.toUTC().toISO(), '2024-10-27T00:30:00.000Z');
+    assert.equal(ambiguous.offset, 60); // BST
+  });
+
+  it('forward-jump gap and overlap in Europe/Berlin', () => {
+    const gap = DateTime.fromObject(
+      { year: 2024, month: 3, day: 31, hour: 2, minute: 30 },
+      { timezone: 'Europe/Berlin' }
+    );
+    assert.equal(gap.toISO(), '2024-03-31T03:30:00.000+02:00');
+
+    const overlap = DateTime.fromObject(
+      { year: 2024, month: 10, day: 27, hour: 2, minute: 30 },
+      { timezone: 'Europe/Berlin' }
+    );
+    assert.equal(overlap.toUTC().toISO(), '2024-10-27T00:30:00.000Z');
+  });
+
+  it('30-minute forward jump gap shifts by 30 minutes (Australia/Lord_Howe)', () => {
+    // 2024-10-06 02:00-02:30 local does not exist; 02:15 becomes 02:45 +11:00
+    const gap = DateTime.fromObject(
+      { year: 2024, month: 10, day: 6, hour: 2, minute: 15 },
+      { timezone: 'Australia/Lord_Howe' }
+    );
+    assert.equal(gap.toISO(), '2024-10-06T02:45:00.000+11:00');
+  });
+
 });
 
 describe('DateTime coverage extras', () => {

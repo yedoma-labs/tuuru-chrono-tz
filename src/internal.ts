@@ -129,11 +129,23 @@ export function getOffsetMinutes(timestamp: number, tz: string): number {
   return Math.round((asUTC - (timestamp - msPart)) / 60000);
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Convert wall-clock time in a timezone to a UTC timestamp.
  *
- * Uses the standard two-pass offset guess. During DST gaps the time is
- * shifted forward; during overlaps the first (earlier) occurrence wins.
+ * The offsets in force one day before and one day after the wall clock
+ * (read as if it were UTC) bound the real offset, since no zone changes its
+ * offset twice within two days. Each offset yields a candidate instant, and
+ * a candidate is kept only if its own offset reproduces the wall clock.
+ *
+ * - One valid candidate: returned.
+ * - Two valid candidates (fall-back overlap): the earlier instant wins.
+ * - None (spring-forward gap): shifted forward by the gap size, using the
+ *   offset in force before the transition (02:30 CET gap in Berlin -> 03:30 CEST).
+ *
+ * The direction of the jump does not matter: forward jumps (London, Berlin,
+ * Lord Howe's 30-minute shift) resolve like backward ones (New York).
  */
 export function wallClockToTimestamp(wc: WallClock, tz: string): number {
   const asUTC = Date.UTC(
@@ -148,22 +160,29 @@ export function wallClockToTimestamp(wc: WallClock, tz: string): number {
 
   if (tz === 'UTC') return asUTC;
 
-  const offset1 = getOffsetMinutes(asUTC, tz);
-  const guess = asUTC - offset1 * 60000;
-  const offset2 = getOffsetMinutes(guess, tz);
+  const offsetBefore = getOffsetMinutes(asUTC - DAY_MS, tz);
+  const offsetAfter = getOffsetMinutes(asUTC + DAY_MS, tz);
 
-  if (offset2 === offset1) return guess;
-
-  // Offsets disagree: either an overlap (both candidates valid; the
-  // earlier one was already produced by guess) or a gap. A candidate is
-  // valid only if its offset reproduces the requested wall clock.
-  const candidate = asUTC - offset2 * 60000;
-  if (getOffsetMinutes(candidate, tz) === offset2) {
-    return candidate;
+  if (offsetBefore === offsetAfter) {
+    // Common case: no transition near this wall clock
+    return asUTC - offsetBefore * 60000;
   }
 
-  // Gap (e.g. 02:30 during spring-forward): shift forward by the gap size
-  return guess;
+  // A candidate is valid only if its own offset reproduces the wall clock.
+  const valid: number[] = [];
+  for (const offset of [offsetBefore, offsetAfter]) {
+    const candidate = asUTC - offset * 60000;
+    if (getOffsetMinutes(candidate, tz) === offset) valid.push(candidate);
+  }
+
+  if (valid.length > 0) {
+    // Overlap (two valid candidates): earliest instant. Otherwise the one valid candidate.
+    return Math.min(...valid);
+  }
+
+  // Gap (e.g. 02:30 during spring-forward): shift forward by the gap size,
+  // i.e. interpret the wall clock with the offset in force before the transition.
+  return asUTC - offsetBefore * 60000;
 }
 
 export function daysInMonth(year: number, month: number): number {
