@@ -1,4 +1,4 @@
-import { describe, it, afterEach } from 'node:test';
+import { describe, it, afterEach, before, after, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
@@ -303,8 +303,17 @@ describe('Hungarian / Bulgarian / Greek / Romanian', () => {
 });
 
 describe('West and South Slavic case-by-direction', () => {
-  const ago = (l, n) => DateTime.fromMilliseconds(Date.now() - n * 60000).fromNow({ locale: l });
-  const inFut = (l, n) => DateTime.fromMilliseconds(Date.now() + n * 60000).fromNow({ locale: l });
+  // Frozen clock: with the real clock, a few milliseconds between building the
+  // timestamp and formatting it turn "in 1 minute" into 59 999 ms ("60 seconds").
+  const FROZEN_NOW = 1_800_000_000_000;
+  before(() => {
+    mock.method(Date, 'now', () => FROZEN_NOW);
+  });
+  after(() => {
+    mock.restoreAll();
+  });
+  const ago = (l, n) => DateTime.fromMilliseconds(FROZEN_NOW - n * 60000).fromNow({ locale: l });
+  const inFut = (l, n) => DateTime.fromMilliseconds(FROZEN_NOW + n * 60000).fromNow({ locale: l });
 
   it('Czech: accusative future, instrumental past, nominative duration', () => {
     assert.equal(inFut(cs, 1), 'za 1 minutu');         // acc sg

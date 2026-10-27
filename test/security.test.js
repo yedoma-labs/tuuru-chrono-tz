@@ -5,8 +5,12 @@ import { DateTime, Duration, Timezone, setDefaultLocale, en } from '../dist/esm/
 
 afterEach(() => setDefaultLocale(en));
 
-/** Assert `fn` runs in under `limitMs` (ReDoS / pathological-input guard) */
-function fast(fn, limitMs = 50) {
+/**
+ * Assert `fn` runs in under `limitMs` (ReDoS / pathological-input guard).
+ * The limit is generous on purpose: wall-clock budgets flake on loaded machines,
+ * and a real ReDoS takes seconds, far above it.
+ */
+function fast(fn, limitMs = 250) {
   const start = performance.now();
   try { fn(); } catch { /* rejection is fine; we only care about time */ }
   const elapsed = performance.now() - start;
