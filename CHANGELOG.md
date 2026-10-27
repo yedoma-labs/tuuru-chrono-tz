@@ -1,3 +1,11 @@
+## [0.3.5](https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.3.4...v0.3.5) (2026-10-27)
+
+
+### Bug Fixes
+
+* **datetime:** endOf day/week/month/year end on the calendar boundary ([8af890a](https://github.com/yedoma-labs/tuuru-chrono-tz/commit/8af890aada8aab20fc6841435c6fcd85b89dc57b))
+* **timezone:** resolve DST gaps and overlaps correctly for forward jumps ([8db4117](https://github.com/yedoma-labs/tuuru-chrono-tz/commit/8db411781ef82b6e5471bc31b36a11d3bba0051e))
+
 ## [0.3.4](https://github.com/yedoma-labs/tuuru-chrono-tz/compare/v0.3.3...v0.3.4) (2026-10-26)
 
 
