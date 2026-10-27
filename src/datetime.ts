@@ -1139,20 +1139,34 @@ export class DateTime {
   endOf(unit: TimeUnit): DateTime {
     if (unit === 'millisecond') return this;
 
+    if (unit === 'day' || unit === 'week' || unit === 'month' || unit === 'year') {
+      // Calendar units end at local midnight of the next period. Resolve that
+      // wall clock in the zone instead of adding 24 hours to the start: where
+      // DST skips midnight (America/Havana, America/Santiago) the start is
+      // 01:00, and adding a day to it would end the period an hour late.
+      const start = this.startOf(unit).#wallClock;
+      const next = new Date(Date.UTC(start.year, start.month - 1, start.day));
+      if (unit === 'day') next.setUTCDate(next.getUTCDate() + 1);
+      else if (unit === 'week') next.setUTCDate(next.getUTCDate() + 7);
+      else if (unit === 'month') next.setUTCMonth(next.getUTCMonth() + 1);
+      else next.setUTCFullYear(next.getUTCFullYear() + 1);
+
+      const nextMidnight: WallClock = {
+        year: next.getUTCFullYear(),
+        month: next.getUTCMonth() + 1,
+        day: next.getUTCDate(),
+        hour: 0,
+        minute: 0,
+        second: 0,
+        millisecond: 0,
+      };
+      const startOfNext = wallClockToTimestamp(nextMidnight, this.#timezone);
+      return new DateTime(startOfNext - 1, this.#timezone, this.#locale);
+    }
+
+    // Sub-day units are absolute time: an hour is 3600 s even across a DST change
     const nextUnit: DurationObject =
-      unit === 'year'
-        ? { years: 1 }
-        : unit === 'month'
-          ? { months: 1 }
-          : unit === 'week'
-            ? { weeks: 1 }
-            : unit === 'day'
-              ? { days: 1 }
-              : unit === 'hour'
-                ? { hours: 1 }
-                : unit === 'minute'
-                  ? { minutes: 1 }
-                  : { seconds: 1 };
+      unit === 'hour' ? { hours: 1 } : unit === 'minute' ? { minutes: 1 } : { seconds: 1 };
 
     const startOfNext = this.startOf(unit).add(nextUnit);
     return new DateTime(startOfNext.valueOf() - 1, this.#timezone, this.#locale);

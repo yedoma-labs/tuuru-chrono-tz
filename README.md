@@ -236,7 +236,7 @@ const data = getTimezoneData(); // { version, zones, rules, links, metadata }
 
 ## Status
 
-Core is complete and covered by 337 automated tests (parsing rejection tables, DST
+Core is complete and covered by 429 automated tests (parsing rejection tables, DST
 spring-forward/fall-back arithmetic, timezone-aware bucketing, locale plurals,
 wall-clock cache vs. an Intl oracle, dual-package smoke test). CI runs Node
 18/20/22/24 on Linux plus Node 22 on macOS and Windows.
@@ -366,7 +366,7 @@ scripts/
 ├── check-size.js     # CI bundle-size guard (pnpm size)
 ├── benchmark.js      # Performance benchmark (pnpm bench)
 src/locales/          # de fr es pt it ru zh ja id hi bn ko tr vi pl nl th ar fa ur uk
-test/                 # node:test suite (337 tests)
+test/                 # node:test suite (429 tests)
 ```
 
 ### Updating IANA Timezone Data

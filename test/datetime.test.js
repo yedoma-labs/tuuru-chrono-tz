@@ -603,6 +603,33 @@ describe('DateTime DST overlap and gap resolution', () => {
     assert.equal(gap.toISO(), '2024-10-06T02:45:00.000+11:00');
   });
 
+  // endOf('day') used to add 24 h to the start. Where midnight is skipped
+  // the start is 01:00, so the period ended at 00:59:59.999 the next day.
+  it('endOf day ends on the same calendar day when midnight is skipped (America/Havana)', () => {
+    const day = DateTime.fromISO('2024-03-10T12:00:00', { timezone: 'America/Havana' });
+    assert.equal(day.startOf('day').toISO(), '2024-03-10T01:00:00.000-04:00');
+    assert.equal(day.endOf('day').toISO(), '2024-03-10T23:59:59.999-04:00');
+  });
+
+  it('endOf day before a skipped midnight ends just before the gap (America/Santiago)', () => {
+    const before = DateTime.fromISO('2024-09-07T12:00:00', { timezone: 'America/Santiago' });
+    assert.equal(before.endOf('day').toISO(), '2024-09-07T23:59:59.999-04:00');
+    const after = DateTime.fromISO('2024-09-08T12:00:00', { timezone: 'America/Santiago' });
+    assert.equal(after.endOf('day').toISO(), '2024-09-08T23:59:59.999-03:00');
+  });
+
+  it('endOf day, week and month stay on calendar boundaries across fall-back', () => {
+    const ny = DateTime.fromISO('2024-11-03T12:00:00', { timezone: 'America/New_York' });
+    assert.equal(ny.endOf('day').toISO(), '2024-11-03T23:59:59.999-05:00');
+    assert.equal(ny.endOf('week').toISO(), '2024-11-03T23:59:59.999-05:00');
+    const march = DateTime.fromISO('2024-03-15T12:00:00', { timezone: 'America/New_York' });
+    assert.equal(march.endOf('month').toISO(), '2024-03-31T23:59:59.999-04:00');
+  });
+
+  it('endOf hour stays absolute inside the repeated fall-back hour', () => {
+    const first = DateTime.fromISO('2024-11-03T01:20:00-04:00', { timezone: 'America/New_York' });
+    assert.equal(first.endOf('hour').toISO(), '2024-11-03T01:59:59.999-04:00');
+  });
 });
 
 describe('DateTime coverage extras', () => {
