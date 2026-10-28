@@ -446,13 +446,6 @@ Token differences: this library uses moment-style tokens (`YYYY`, `DD`, `HH`)
 
 ---
 
-## About "tuuru"
-
-**tuuru** (Yakutian: туору) means "world" in the Yakut language. Yakutia spans
-**11 time zones** — more than any other region. Fitting namesake for a timezone library.
-
----
-
 ## Contributing
 
 This library is evidence-based — every feature solves a documented user problem.
@@ -467,4 +460,3 @@ MIT © [yedoma-labs](https://github.com/yedoma-labs)
 
 - **IANA** for the timezone database
 - **298 developers** who shared their pain points
-- **Yakutian culture** for the name
